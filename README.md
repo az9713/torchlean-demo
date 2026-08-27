@@ -9,6 +9,19 @@ used by training code, graph transformations, certificate checkers, and proofs. 
 backends handle numerical work; the Lean library records the mathematical meaning and assumptions
 attached to each path.
 
+## Test suite manual — live page
+
+[![TorchLean Test Suite Manual](torchlean-tests-guide.png)](https://az9713.github.io/torchlean-demo/torchlean-tests-guide.html)
+
+`run_tests.sh` is a 12-case smoke suite for a real install: 11 CPU cases plus one opt-in CUDA case.
+Click the screenshot above for the **[live manual](https://az9713.github.io/torchlean-demo/torchlean-tests-guide.html)**,
+which explains what each case proves, how to start it from Git Bash on Windows, and how to read PASS/FAIL.
+
+```bash
+./run_tests.sh          # CPU cases only
+./run_tests.sh --cuda   # adds the GPU case
+```
+
 ## Installation
 
 ```bash

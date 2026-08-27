@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>TorchLean Deep Dive</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --text2: #cbd5e1;
+    --muted: #94a3b8; --accent: #fb923c; --accent2: #2dd4bf;
+    --border: #334155; --border2: #1e293b; --code-bg: #0b1120;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text2); font-family: "Segoe UI", system-ui, -apple-system, sans-serif; line-height: 1.65; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+  header.site { padding: 36px 20px 8px; max-width: 1080px; margin: 0 auto; }
+  h1 { color: var(--text); font-size: 1.9rem; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: .95rem; margin-bottom: 18px; }
+  h2 { color: var(--text); font-size: 1.35rem; margin-top: 2em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  h3 { color: var(--accent2); font-size: 1.08rem; margin-top: 1.6em; }
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  p { margin: .85em 0; }
+  strong { color: var(--text); }
+  code { background: var(--code-bg); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 6px; font-size: .88em; color: var(--accent2); font-family: Consolas, "Cascadia Mono", monospace; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: .84rem; line-height: 1.5; }
+  pre code { background: none; border: none; padding: 0; color: #d8e2f0; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: .9rem; }
+  th { text-align: left; color: var(--text); background: var(--card); }
+  th, td { border: 1px solid var(--border); padding: 7px 10px; vertical-align: top; }
+  .tablewrap { overflow-x: auto; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 10px; font-size: .78rem; font-weight: 600; margin-right: 6px; }
+  .pill.ok { background: rgba(45,212,191,.15); color: var(--accent2); border: 1px solid rgba(45,212,191,.4); }
+  .pill.warn { background: rgba(251,146,60,.15); color: var(--accent); border: 1px solid rgba(251,146,60,.4); }
+  .pill.info { background: rgba(148,163,184,.15); color: var(--muted); border: 1px solid var(--border); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin: 1em 0; }
+  .callout { border-left: 3px solid var(--accent); background: var(--card); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 1em 0; }
+  .callout.teal { border-left-color: var(--accent2); }
+  .muted { color: var(--muted); }
+  /* ---- radio tabs, no JS ---- */
+  .tabs input[type="radio"] { display: none; }
+  .tabbar { display: flex; flex-wrap: wrap; gap: 6px; position: sticky; top: 0; background: var(--bg); padding: 12px 0; z-index: 5; border-bottom: 1px solid var(--border); }
+  .tabbar label { cursor: pointer; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); font-size: .87rem; font-weight: 600; background: var(--card); }
+  .tabbar label:hover { color: var(--text); }
+  .panel { display: none; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  #t1:checked ~ .tabbar label[for="t1"], #t2:checked ~ .tabbar label[for="t2"],
+  #t3:checked ~ .tabbar label[for="t3"], #t4:checked ~ .tabbar label[for="t4"],
+  #t5:checked ~ .tabbar label[for="t5"], #t6:checked ~ .tabbar label[for="t6"],
+  #t7:checked ~ .tabbar label[for="t7"], #t8:checked ~ .tabbar label[for="t8"],
+  #t9:checked ~ .tabbar label[for="t9"], #t10:checked ~ .tabbar label[for="t10"]
+  { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+  #t1:checked ~ #p1, #t2:checked ~ #p2, #t3:checked ~ #p3, #t4:checked ~ #p4,
+  #t5:checked ~ #p5, #t6:checked ~ #p6, #t7:checked ~ #p7, #t8:checked ~ #p8,
+  #t9:checked ~ #p9, #t10:checked ~ #p10 { display: block; }
+</style>
+</head>
+<body>
+<header class="site">
+  <h1>TorchLean Deep Dive</h1>
+  <div class="sub">Podcast transcript &middot; four papers &middot; repo install and deep dive &middot; project proposals for this machine &middot; generated 2026-08-26</div>
+</header>
+<div class="wrap tabs">
+  <input type="radio" name="tabs" id="t1" checked>
+  <input type="radio" name="tabs" id="t2">
+  <input type="radio" name="tabs" id="t3">
+  <input type="radio" name="tabs" id="t4">
+  <input type="radio" name="tabs" id="t5">
+  <input type="radio" name="tabs" id="t6">
+  <input type="radio" name="tabs" id="t7">
+  <input type="radio" name="tabs" id="t8">
+  <input type="radio" name="tabs" id="t9">
+  <input type="radio" name="tabs" id="t10">
+  <div class="tabbar">
+    <label for="t1">Overview</label>
+    <label for="t2">Podcast</label>
+    <label for="t3">Neural Operators</label>
+    <label for="t4">FNO</label>
+    <label for="t5">FourCastNet 3</label>
+    <label for="t6">TorchLean Paper</label>
+    <label for="t7">Repo Deep Dive</label>
+    <label for="t8">Install Log</label>
+    <label for="t9">Projects</label>
+    <label for="t10">Feasibility</label>
+  </div>
+
+  <!-- ================= TAB 1: OVERVIEW ================= -->
+  <section class="panel" id="p1">
+    <h2>What this page is</h2>
+    <p>You gave one folder with a podcast transcript and five links: four arXiv papers and one GitHub repo. The task was: read everything, install the TorchLean repo, dig into it, and propose projects that run on this laptop. This page holds all of it. Each tab is one major item.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0">The source set</h3>
+      <div class="tablewrap"><table>
+        <tr><th>Item</th><th>What it is</th><th>Tab</th></tr>
+        <tr><td>Latent Space podcast (video 79mIutht1f4)</td><td>Anima Anandkumar on AI for science, neural operators, weather, fusion, and TorchLean. 1h 23m.</td><td>Podcast</td></tr>
+        <tr><td>arXiv 2108.08481</td><td>"Neural Operator: Learning Maps Between Function Spaces" &mdash; the JMLR framework paper. 97 pages.</td><td>Neural Operators</td></tr>
+        <tr><td>arXiv 2010.08895</td><td>"Fourier Neural Operator for Parametric Partial Differential Equations" &mdash; the ICLR 2021 FNO paper. 16 pages.</td><td>FNO</td></tr>
+        <tr><td>arXiv 2507.12144</td><td>"FourCastNet 3" &mdash; probabilistic ML weather forecasting on the sphere. 46 pages.</td><td>FourCastNet 3</td></tr>
+        <tr><td>arXiv 2602.22631</td><td>"TorchLean: Formalizing Neural Networks in Lean" &mdash; the paper behind the repo. 55 pages.</td><td>TorchLean Paper</td></tr>
+        <tr><td>github.com/lean-dojo/TorchLean</td><td>The Lean 4 framework itself. 306k lines of Lean, 2,633 theorems/lemmas. Installed and built on this machine (WSL2).</td><td>Repo Deep Dive, Install Log</td></tr>
+      </table></div>
+    </div>
+
+    <h2>The one-paragraph story</h2>
+    <p>Anima Anandkumar's research program says: language models alone cannot do science, because science needs models that respect the physical world &mdash; its resolutions, its geometry, and its guarantees. Neural operators (2108.08481) are the architecture half of that program: networks that learn maps between <em>function spaces</em>, so one model works at any resolution. The Fourier neural operator (2010.08895) made that practical, and FourCastNet 3 (2507.12144) scaled it to global weather on a sphere, with skill near the best physics ensembles at tiny cost. TorchLean (2602.22631) is the <em>guarantees</em> half: a PyTorch-style framework inside the Lean 4 theorem prover, where the network you run is the same mathematical object you verify. One graph, one meaning &mdash; execution, autograd, bound propagation, and certificate checking all point at it.</p>
+
+    <h2>This machine</h2>
+    <div class="tablewrap"><table>
+      <tr><th>Component</th><th>Spec</th><th>What it means for TorchLean</th></tr>
+      <tr><td>CPU</td><td>Intel Core i5-12450H, 8 cores / 12 threads</td><td>Fine for the full Lean build (with mathlib cache) and every CPU example.</td></tr>
+      <tr><td>RAM</td><td>31.7 GB (WSL2 sees ~15 GB)</td><td>Enough. Mathlib compiles are the hungry part, and the cache avoids them.</td></tr>
+      <tr><td>GPU</td><td>NVIDIA RTX 3050 Laptop, 4 GB VRAM, driver 592.82</td><td>The CUDA build path is Linux-only (WSL2 works). 4 GB fits the repo's small example models.</td></tr>
+      <tr><td>Disk</td><td>326 GB free on C:</td><td>Toolchain + mathlib cache + build is roughly 10&ndash;15 GB. No problem.</td></tr>
+      <tr><td>OS</td><td>Windows 11 Home + WSL2 Ubuntu 24.04 (running)</td><td>Native Windows build is blocked by a Malwarebytes false positive (see Install Log). The build lives in WSL2.</td></tr>
+    </table></div>
+
+    <h2>Install status</h2>
+    <div id="install-status-card" class="card">
+      <p><span class="pill ok">INSTALLED &amp; VERIFIED</span> Full build completed in WSL2 Ubuntu: <strong>4,173 jobs, exit 0</strong> (mathlib served from cache, 8,690 prebuilt files). Verified by real runs, not by exit codes: the quickstart MLP trained (loss 1.349908 &rarr; 1.247884 over 10 steps), the IBP workflow bounded a lowered 18-node graph, a LiRPA certificate replayed, and <code>margin-cert</code> reproduced the paper's exact headline result &mdash; 349/360 nominal, <strong>318/360 certified robust</strong> &mdash; in 3.7 s on this laptop. Full transcript in the Install Log tab.</p>
+      <p class="muted">Native Windows remains blocked by a Malwarebytes false positive that deletes the LLD linker (details + fix in the Install Log tab). The working checkout lives at <code>\\wsl$\Ubuntu\home\az9713\TorchLean</code>; the Windows-side clone at <code>Downloads\torchlean_latent\TorchLean</code> is for reading.</p>
+    </div>
+  </section>
+
+  <!-- ================= TAB 2: PODCAST ================= -->
+  <section class="panel" id="p2">
+    <h2>Anima Anandkumar on Latent Space: AI for the physical world</h2>
+    <p class="muted">Latent Space, AI-for-science track. Hosts: Brandon (RNA therapeutics with AI at Atomic AI) and RJ Honakee (CTO and founder of Miraomics, spatial transcriptomics). Guest: Anima Anandkumar, Bren Professor of mathematics and computer science at Caltech, formerly head of AI research at NVIDIA and founding member of the AWS cloud AI team. 1h 23m.</p>
+
+    <h3>The thesis: ideas are cheap, verification is the bottleneck</h3>
+    <p>Anandkumar has worked in AI for more than two decades, starting in the theory of probabilistic models before deep learning, then scaling AI in industry at AWS and NVIDIA, and now back at Caltech. Her framing of "AI for science" splits the problem in two. Language models can generate hypotheses &mdash; but "ideas are not enough." The bottleneck is testing and verifying that ideas work in the real world. So her program has two arms. The first arm keeps the <em>physics</em> correct: neural operators, models that respect the structure of physical systems. The second arm keeps the <em>claims</em> correct: formal verification in Lean, which is where TorchLean lives. TorchLean lets you write neural networks in a PyTorch-like style inside Lean, so the same network can be executed and formally reasoned about &mdash; certified robustness bounds (she names CROWN as one implemented algorithm family), sensitivity analysis ("if the inputs are perturbed by a certain amount, how much is the output perturbed"), and finite-precision effects. Her motivating examples are control loops: drones, nuclear reactors &mdash; systems where you want a bound before you deploy. She is direct about the current limits: Lean is CPU-based, getting it onto GPUs "has a lot of nuances," and scaling verification to very large networks like modern transformers still requires a lot of work. What exists today is the framework.</p>
+
+    <h3>Why physics-informed neural networks fail, and what neural operators change</h3>
+    <p>Physics-informed neural networks (PINNs) write down a PDE residual as a loss and hope optimization finds a solution from scratch, per equation instance. Anandkumar's diagnosis: for time-dependent, potentially turbulent problems the optimization landscape is hopeless &mdash; fine-scale effects dominate and "this is not an optimization landscape we can have any handle on." Neural operators are her answer: use data. Train on many solved instances of an equation family (real observations or simulations), then at test time the model produces solutions directly, with physics constraints available as extra guidance rather than as the sole signal. The key conceptual jump: standard neural networks map fixed-size inputs to fixed-size outputs; neural operators model input and output as <em>continuous functions</em> that can be discretized at any resolution. You can train at one resolution and ask for outputs at another ("zero-shot super-resolution" &mdash; with the honest caveat that going above training resolution is regularized guessing unless you add physics constraints, e.g. PDE or conservation losses enforced at the finer scale).</p>
+
+    <h3>Fourier layers, and why Fourier</h3>
+    <p>The Fourier neural operator does its main mixing in frequency space: FFT, act on a truncated set of modes, inverse FFT, plus pointwise nonlinearities, residual connections, and channel lifting between layers. Her argument for it is a trade-off: solutions of PDEs are non-local (a derivative is local, but its inverse &mdash; integration &mdash; is global), transformers capture globality at quadratic cost, and Fourier gives global coupling at quasi-linear cost. Crucially, this is not classical spectral methods reborn: numerical methods represent the signal linearly in a Fourier basis and need very fine discretization; FNO lifts the signal to a high-dimensional latent space and interleaves nonlinearities, so the network learns the right basis rather than being stuck with sines. Her own undergraduate thesis, more than two decades ago, was on the fractional Fourier transform &mdash; the old math returns, but only as a component inside a learned system.</p>
+
+    <h3>The scaling argument against transformers for physics</h3>
+    <p>Two constraints separate physical data from language. First, data volume: her weather model trained on about 50,000 global samples (the host later says 58,000; both figures appear in the conversation) &mdash; nothing like a web-scale text corpus, so inductive bias must fill the gap. Second, computational scale: language is one-dimensional, and context lengths in the millions already strain transformers. Industrial-scale physics is 3D plus time at hundreds to a thousand grid points per dimension &mdash; hundreds of billions to a trillion tokens of context. "Forget ever having a transformer for anything of this scale; all of the world's compute will not be enough." When a host pushes back with video models, she counters that generative video is optimized to "look good" at low resolution, while simulation must be precise at high resolution &mdash; you cannot throw away detail without losing the phenomenon (fluid dynamics, plasma, material deformation).</p>
+
+    <h3>Weather: the 2021 bet that changed the field</h3>
+    <p>In 2021 the team picked global weather because the data was open: ERA5 reanalysis from ECMWF, the European weather agency &mdash; historical observations assimilated with physics solvers into a global gridded record at 0.25&deg; resolution (she quotes the grid as roughly 700 &times; a-few-thousand points). Weather scientists warned them off: decades of careful bottom-up physics-based forecasting would not fall to AI. The result (FourCastNet) matched traditional models on accuracy and ran tens of thousands of times faster &mdash; a supercomputer workload on a single consumer-grade GPU. The model trains autoregressively: given the current global state (wind, humidity, and so on), predict six hours ahead; roll out for longer horizons, with only light multi-step fine-tuning. She credits open-sourcing FourCastNet permissively as the reason weather agencies and companies could build on it, and notes DeepMind, Huawei and others followed a year later. Since fall 2023 the model has run publicly at ECMWF. During Hurricane Lee, FourCastNet correctly called the landfall several days earlier than the standard forecasting models. Her broader point: AI forecasting democratizes capability &mdash; small agencies in the global south get fidelity that only the biggest centers could previously afford.</p>
+
+    <h3>One model for weather and climate: assume a sphere</h3>
+    <p>Short-term weather and long-term climate were historically separate model families. Her position: "there's only one Earth" &mdash; a foundation model should do both. The blocker is stability under long rollouts. Architectures that treat the world as a flat rectangle (standard projections) blow up when rolled out for months to a year; FourCastNet 3 bakes in spherical geometry (spherical harmonics &mdash; "the Fourier saves us," natural on the globe, unlike a Mercator projection where "Greenland becomes huge"), and the same model then stays stable in long rollouts. She says the Allen AI Institute has built climate emulators on this neural operator architecture and calls it the only architecture that works as an AI climate emulator, because climate requires the globe assumption. Climate projections come from ensembles: many trajectories with perturbed initial conditions, each member individually respecting the physics (constraints are checked per member, not on the ensemble average). Ensembles are also where the speed advantage compounds: traditional centers can barely afford one high-resolution run; an AI model that is tens of thousands of times faster can afford large ensembles, which is exactly what probabilistic risk assessment of hurricanes needs. Open problems she flags honestly: enforcing physical constraints during very long rollouts without washing out fine detail is unsolved and under active research, and poles remain the hard part of the sphere.</p>
+
+    <h3>The physical world is forgiving</h3>
+    <p>A surprise she keeps encountering: rare events like hurricanes are predicted well despite scarce examples, because extreme physical events have a specific physical signature &mdash; "extreme, but in a very specific way." Nature has a lot of latent structure that data-driven models uncover and traditional numerical methods (built for worst-case correctness) do not exploit. Fusion is her sharpest example: a plasma digital twin for a tokamak, trained with the UK Atomic Energy Authority on barely a few thousand samples, predicts disruption events well and runs a million times faster than traditional magnetohydrodynamics simulation. (Disruption: the plasma collapses into a beam that can damage the containment vessel &mdash; the reason reactors shut down early and a core obstacle to sustainable fusion.) The next step is closing the loop: design the control and the simulation together to prevent disruptions, with work extending to stellarators and other reactor geometries. She frames AI as the risk-taker's tool: in the digital twin you can explore reactor designs that would be too expensive or risky to try physically.</p>
+
+    <h3>From carbon to chips: one latent-space trick everywhere</h3>
+    <p>The same operator-learning machinery shows up across domains: modeling CO2 sequestration underground (plume spread and pressure build-up over decades, much faster than traditional simulation); aerodynamics over arbitrary geometries, where a car is deformed to a donut, physics is modeled on the donut in latent space, and mapped back &mdash; one model generalizing across shapes; and inverse design, where instead of simulating a given design you ask for the best one: masks for inverse lithography, gates for quantum dots, nonlinear photonics. Collaborators struggled to find these designs manually; AI finds efficient designs with the forward simulation in the loop as a physics guardrail. Her stated future: a foundation model for physics &mdash; multi-physics, coupled phenomena, both simulation and design. Complete transfer to unseen physics is impossible ("we will never have data about a new discovery"), but modular curricula work: teach heat propagation and material stretching separately, then fine-tune the coupled thermo-mechanical problem with far fewer samples. Evidence of that shows up across several of her papers.</p>
+
+    <h3>Career arc, the UN seat, and the call to action</h3>
+    <p>Her career reads as a full circle: theory (tensor methods for probabilistic models like latent Dirichlet allocation, when deep learning did not yet work), then scale (AWS, NVIDIA &mdash; "theory should not be a constraint"), and now principled methods again, because purely data-driven approaches are saturating and the physical world demands extrapolation &mdash; her definition of discovery. On the UN Scientific Advisory Board, her agenda is to keep scientists in the room: regulatory frameworks tend to equate AI with language models, and one-size-fits-all rules written for chatbots would strangle AI for science, which she argues has a different risk profile and enormous benefit (weather, agriculture, energy). Asked for the one bottleneck she would remove: compute, especially for research. Her call to action: go play with the open-source neural operator library (part of the PyTorch ecosystem, with documented architectures and recipes) &mdash; and think of AI for science as more than language models and agents: "until we have AI that fully understands the physical world not just as symbols but as one that can simulate and design and control, there's a big piece missing."</p>
+
+    <div class="callout teal">
+      <strong>Numbers that anchor the episode:</strong> ~50,000 training samples for global weather (host: 58,000) &middot; 0.25&deg; ERA5 grid, ~700 &times; a-few-thousand points &middot; 6-hour autoregressive step &middot; tens of thousands of times faster than supercomputer NWP &middot; ensembles of a few tens of members &middot; in ECMWF's public suite since fall 2023 &middot; Hurricane Lee landfall called days earlier &middot; fusion digital twin: a few thousand samples, a million times faster than MHD simulation &middot; 1000&sup3; grid + time &asymp; hundreds of billions to a trillion context tokens &mdash; the anti-transformer argument.
+    </div>
+  </section>
+
+  <!-- ================= TAB 3: NEURAL OPERATORS ================= -->
+  <section class="panel" id="p3">
+    <h2>Neural Operator: Learning Maps Between Function Spaces (arXiv 2108.08481)</h2>
+    <p class="muted">Kovachki, Li, Liu, Azizzadenesheli, Bhattacharya, Stuart, Anandkumar &mdash; JMLR. 97 pages.</p>
+    <!-- NEURAL_OPERATORS_SUMMARY -->
+    <h3>The problem: networks are tied to grids; science needs maps between functions</h3>
+    <p>Standard neural networks map between finite-dimensional vector spaces, so they are tied to one fixed grid. Many scientific tasks instead need a map between <em>functions</em> &mdash; for example, from a PDE's coefficient function to its solution function. A grid-bound model may not generalize to a different discretization and may need a new architecture per resolution. The paper defines <strong>neural operators</strong>: networks whose layers are linear integral operators composed with pointwise nonlinear activations, acting directly on function spaces. The target is an operator G&dagger; : A &rarr; U between Banach spaces of functions, learned from N input&ndash;output pairs drawn i.i.d. from a measure &mu;, by empirical risk minimization in the L&sup2;-&mu; Bochner norm.</p>
+    <p>Two properties are proved, and the authors claim neural operators are the only known model class with both. <strong>Discretization invariance</strong>: a fixed-parameter model must accept any input point set, allow output evaluation at any point, and converge to a continuum operator as the discretization refines. Graph networks and transformers accept any resolution but fail the convergence requirement; CNNs fail because their receptive field changes with the grid and their parameter count diverges in the continuum limit. <strong>Universal approximation</strong>: neural operators approximate any continuous operator between the studied spaces. Plain NNs have neither property; interpolation-based models are invariant but not universal; DeepONets are universal but, in basic form, not discretization invariant.</p>
+
+    <h3>How a neural operator computes</h3>
+    <p>A local map P lifts the input pointwise to a higher-dimensional channel vector. Then T layers (typically 4) each compute v<sub>t+1</sub>(x) = &sigma;(W v<sub>t</sub>(x) + &int;<sub>D</sub> &kappa;<sup>(t)</sup>(x,y) v<sub>t</sub>(y) d&nu;(y) + b(x)) &mdash; a kernel integral operator (the function-space analog of a weight matrix), plus a local linear ResNet-style term W, a bias function, and a pointwise activation. A local map Q projects back. Because everything is defined on functions, one parameter set serves all discretizations; total error splits into discretization error (refine the grid) plus approximation error (add parameters). Kernel variants may depend on the input a (useful for Darcy flow) or on v itself, which makes the operator nonlinear. Appending the coordinate x (and optionally smoothed inputs and gradients) to the channels is a standard trick.</p>
+    <p>Naive quadrature costs O(J&sup2;) in the number of grid points, so the paper gives four efficient parameterizations. The <strong>Graph Neural Operator</strong> (GNO) truncates the integral to a ball and Nystr&ouml;m-subsamples J&prime; points via message passing, cost O(J&nbsp;J&prime;). The <strong>Low-rank Neural Operator</strong> (LNO) writes the kernel as a learned rank-r sum of products, cost O(J). The <strong>Multipole Graph Neural Operator</strong> (MGNO) mimics the fast multipole method &mdash; sparse short range, low-rank long range on nested coarser grids, computed as a V-cycle &mdash; also O(J). The <strong>Fourier Neural Operator</strong> (FNO) assumes &kappa;(x,y) = &kappa;(x&minus;y), so by the convolution theorem the layer is u = F&#8315;&sup1;(R &middot; F(v)): the kernel is parameterized directly by its truncated Fourier coefficients, O(J log J) with the FFT, typically keeping k<sub>max</sub> = 12 modes per dimension. Two subsumption results place rivals inside the framework: a neural operator with a pointwise-parameterized first kernel and discretized integrals is exactly a DeepONet (and that parameterization breaks discretization invariance; their DeepONet-Operator fix restores it), and single-headed transformer attention is a special case of the nonlinear kernel layer under Monte Carlo discretization. DeepONet-style models are <em>linear</em> approximation, bounded by Kolmogorov n-widths that decay slowly for advection-dominated PDEs; the full neural operator is nonlinear approximation and empirically wins at equal parameter counts.</p>
+
+    <h3>Theory, stated honestly</h3>
+    <p>Theorem 8: on domains where A and U embed continuously into continuous functions, n-layer neural operators are discretization invariant in the precise sense (Riemann-sum instantiations converge uniformly on compact sets). Theorem 11: for L<sup>p</sup>, Sobolev W<sup>m,p</sup>, or continuous-function spaces on Lipschitz domains and continuous G&dagger;, for any compact K and &epsilon; &le; 1 there is a neural operator within &epsilon; uniformly on K; in Hilbert-space targets it can be chosen bounded by 4M. Theorems 12&ndash;14 extend to C<sup>m</sup> inputs (derivatives as extra inputs) and to density in the L&sup2;-&mu; Bochner norm. The authors' own caveats: the analyzed class simplifies the practical one (P, Q identity, W zero); the proofs reduce to linear approximation, so they do not explain the observed benefit of nonlinearity or depth; no rates in parameter count or data size; parameter growth can be super-exponential in general; and the general theory does not cover FNO (separate FNO universality results exist for Hilbert spaces).</p>
+
+    <h3>Experiments and numbers</h3>
+    <p>All on one 16 GB V100; four layers; N = 1000 train / 200 test unless noted; Adam, 500 epochs, lr 0.001 halved every 100; relative L&sup2; loss. A 1-d Poisson problem: one learned kernel reaches relative error 10&#8315;&#8311; and visibly recovers the analytic Green's function. <strong>Darcy flow</strong> (2-d, 421&times;421 ground truth): FNO 0.0108/0.0109/0.0109/0.0098 across s = 85/141/211/421 &mdash; resolution-invariant &mdash; vs GNO 0.0346&ndash;0.0369, MGNO &asymp;0.042, DeepONet 0.0462&ndash;0.0487, RBM 0.0244&ndash;0.0259, PCA+NN &asymp;0.0299; a pointwise NN sits at 0.1716, and the FCN baseline <em>degrades</em> from 0.0253 to 0.1097 as resolution grows. <strong>Burgers</strong> (1-d, &nu; = 0.1, 8192-point grid): FNO 0.0018&ndash;0.0020 across s = 256&ndash;8192, near an order of magnitude under every baseline; GeLU instead of ReLU cuts it to 0.0007. <strong>Navier&ndash;Stokes</strong> (vorticity form, 64&times;64): FNO-3D (6,558,537 params) hits 0.0086 at &nu; = 10&#8315;&sup3;, 0.0820 at &nu; = 10&#8315;&#8308; with N = 10,000, 0.1893 at &nu; = 10&#8315;&#8309;; FNO-2D 0.0128/0.0834/0.1556; U-Net (24,950,491 params) 0.0245/0.1190/0.1982; TF-Net 0.0225/0.1168/0.2268; ResNet 0.0701/0.2311/0.2753. Headline: under 1% error at Reynolds 20, 8% at Reynolds 200. Zero-shot super-resolution: trained 64&times;64&times;20, evaluated 256&times;256&times;80. Inference 0.005 s vs 2.2 s for the pseudo-spectral solver at 256&times;256. In a Bayesian inverse problem (recovering initial vorticity from 49 noisy observations, pCN MCMC, 25,000 samples), FNO reproduces the posterior mean in 2.5 minutes vs over 18 hours &mdash; and stays ahead even counting its 12 hours of data generation + training. Robustness to 10% test noise varies by problem: Burgers 0.002&rarr;0.018, advection 0.002&rarr;0.094, Darcy 0.011&rarr;0.012, Navier&ndash;Stokes 0.024&rarr;0.039.</p>
+
+    <h3>Limitations and takeaway</h3>
+    <p>Stated limits: the error plateaus &mdash; the method is resolution-invariant, not resolution-convergent; the fast FNO needs uniform grids and periodic-type geometry (the local W term plus padding handles non-periodic boundaries; non-uniform geometry needs extra machinery); full O(J&sup2;) integration still beats FNO by about 40% in accuracy at much greater cost; FNO struggles with discontinuous outputs (advection), and the known CNN-branch fix breaks discretization invariance. At small parameter budgets (~10&sup3;) kernel-network methods beat FNO (0.070&ndash;0.075 vs 0.200 on Darcy); FNO wins at 10&#8309;&ndash;10&#8310; (0.015&ndash;0.020). The takeaway: learn the operator, not a grid-to-grid map &mdash; one trained model transfers across meshes and resolutions and drops into downstream tasks like Bayesian inversion with orders-of-magnitude speedups.</p>
+  </section>
+
+  <!-- ================= TAB 4: FNO ================= -->
+  <section class="panel" id="p4">
+    <h2>Fourier Neural Operator for Parametric PDEs (arXiv 2010.08895)</h2>
+    <p class="muted">Li, Kovachki, Azizzadenesheli, Liu, Bhattacharya, Stuart, Anandkumar &mdash; ICLR 2021. 16 pages.</p>
+    <!-- FNO_SUMMARY -->
+    <h3>The problem: solvers are slow, prior neural methods are stuck</h3>
+    <p>The audience is anyone who must solve PDEs many times over &mdash; airfoil design, molecular dynamics, micro-mechanics, turbulence &mdash; where an inverse problem can need thousands of forward evaluations. Traditional finite-element and finite-difference solvers trade speed against grid fineness. Prior neural approaches split into two camps with complementary flaws: finite-dimensional operators (CNN surrogates) are mesh-dependent and cannot query new points; Neural-FEM methods (PINNs, Deep Ritz) are mesh-independent but model <em>one</em> PDE instance &mdash; every new coefficient means retraining &mdash; and need the PDE known. Neural operators learn the map between function spaces from data alone, but until this paper their integral kernels were too expensive to compete.</p>
+
+    <h3>The trick: parameterize the kernel in Fourier space</h3>
+    <p>Each layer updates v<sub>t+1</sub>(x) = &sigma;(W v<sub>t</sub>(x) + (K v<sub>t</sub>)(x)). Restrict the kernel to &kappa;(x&minus;y): K becomes a convolution, and by the convolution theorem K v = F&#8315;&sup1;(F(&kappa;) &middot; F(v)). So a Fourier layer is: FFT; keep only the low modes up to k<sub>max</sub> per dimension (implemented as the "corners" of the spectrum); multiply by a learned complex weight tensor R of shape k<sub>max</sub> &times; d<sub>v</sub> &times; d<sub>v</sub> with conjugate symmetry (the kernel is real); inverse FFT; add the parallel pointwise path W v<sub>t</sub>; apply the activation. They tried making R a function of the wavenumber (linear worked equally, a neural net worse); direct weights won. Complexity is quasi-linear &mdash; O(n log n) for the FFT &mdash; but the FFT requires a uniform grid. Because parameters live in Fourier space, evaluating at any resolution just projects onto e<sup>2&pi;i&lang;x,k&rang;</sup>, defined everywhere: that yields discretization invariance, consistent error at any resolution, and zero-shot super-resolution &mdash; train coarse, evaluate fine, no fine training data.</p>
+
+    <h3>The three benchmarks, with the numbers</h3>
+    <p>Setup: four Fourier layers, ReLU, batch norm; N = 1000 train / 200 test; Adam 500 epochs, lr 0.001 halved every 100 epochs; k<sub>max,j</sub> = 16, d<sub>v</sub> = 64 (1-d) or k<sub>max,j</sub> = 12, d<sub>v</sub> = 32 (2-d); one 16 GB V100. In practice 12 modes per dimension sufficed everywhere. <strong>Burgers' equation</strong> (1-d, &nu; = 0.1, solved at 2&sup1;&sup3; = 8192 and subsampled): FNO stays flat at 0.0139&ndash;0.0160 from s = 256 to 8192, vs LNO &asymp;0.019&ndash;0.022, MGNO 0.0243&ndash;0.0374, PCANN &asymp;0.039, GNO 0.0555&ndash;0.0699, and an FCN growing from 0.0958 to 0.3238 with resolution &mdash; about 30% below the best prior method. <strong>Darcy flow</strong> (2-d steady elliptic; the solution operator is nonlinear even though the PDE is linear): FNO 0.0098&ndash;0.0109 across s = 85&ndash;421, nearly an order of magnitude below every benchmark (RBM 0.0244&ndash;0.0259, PCANN &asymp;0.0298, GNO 0.0332&ndash;0.0369, MGNO &asymp;0.042, LNO 0.0445&ndash;0.0520, NN 0.1716) &mdash; the stated headline is 60% lower error. <strong>Navier&ndash;Stokes</strong> (vorticity form on the torus, learn [0,10] &rarr; (10,T], 64&times;64):</p>
+    <div class="tablewrap"><table>
+      <tr><th>Model</th><th>Params</th><th>s/epoch</th><th>&nu;=10&#8315;&sup3;, T=50, N=1k</th><th>&nu;=10&#8315;&#8308;, T=30, N=1k</th><th>&nu;=10&#8315;&#8308;, N=10k</th><th>&nu;=10&#8315;&#8309;, T=20, N=1k</th></tr>
+      <tr><td>FNO-3D</td><td>6,558,537</td><td>38.99</td><td><strong>0.0086</strong></td><td>0.1918</td><td><strong>0.0820</strong></td><td>0.1893</td></tr>
+      <tr><td>FNO-2D</td><td>414,517</td><td>127.80</td><td>0.0128</td><td><strong>0.1559</strong></td><td>0.0834</td><td><strong>0.1556</strong></td></tr>
+      <tr><td>U-Net</td><td>24,950,491</td><td>48.67</td><td>0.0245</td><td>0.2051</td><td>0.1190</td><td>0.1982</td></tr>
+      <tr><td>TF-Net</td><td>7,451,724</td><td>47.21</td><td>0.0225</td><td>0.2253</td><td>0.1168</td><td>0.2268</td></tr>
+      <tr><td>ResNet</td><td>266,641</td><td>78.47</td><td>0.0701</td><td>0.2871</td><td>0.2311</td><td>0.2753</td></tr>
+    </table></div>
+    <p>FNO-3D (space-time convolution) wins when data suffices; FNO-2D (2-d convolution + recurrence, can roll to arbitrary T) wins in the data-scarce settings, where every method exceeds 15% error. Zero-shot super-resolution: FNO-3D trained on 64&times;64&times;20 transfers directly to 256&times;256&times;80 &mdash; super-resolution in space <em>and</em> time; it is the only benchmarked model that can do this at all. Speed: 0.005 s inference vs 2.2 s for the pseudo-spectral solver at 256&times;256 &mdash; the abstract's "up to three orders of magnitude faster" (the paper never writes a literal 1000&times;). The Bayesian inverse problem (function-space MCMC, 25,000 posterior samples, 30,000 forward evaluations, 7&times;7 observation grid): FNO recovers nearly the same posterior mean in 2.5 minutes vs over 18 hours &mdash; and, counting its own 12 hours of data generation and training, "using FNO is still faster!" Being differentiable, it also suits PDE-constrained optimization without adjoints. A neat spectral finding: truncating a &nu; = 10&#8315;&sup3; solution at 20 Fourier modes gives ~2% error, yet FNO reaches &le;1% with only 12 parameterized modes &mdash; the nonlinearities and decoder recover the high frequencies, and the W path tracks non-periodic boundaries.</p>
+
+    <h3>Limitations and takeaway</h3>
+    <p>Stated caveats: the &nu; = 10&#8315;&#8308; setting needed 10,000 solver-generated training pairs, and for harder PDEs even a few samples can be very expensive (combining with numerical solvers is left as future work); the FFT needs a uniform grid; existence of minimizers of the operator-learning objective in infinite dimensions is open. The takeaway: global linear spectral convolutions plus local nonlinear activations give a resolution-invariant surrogate that is faster and more accurate than every learning-based baseline tested &mdash; and the authors suggest the discretization-invariance argument extends beyond PDEs to vision, where images are functions on 2-d domains.</p>
+  </section>
+
+  <!-- ================= TAB 5: FCN3 ================= -->
+  <section class="panel" id="p5">
+    <h2>FourCastNet 3: probabilistic ML weather forecasting at scale (arXiv 2507.12144)</h2>
+    <p class="muted">NVIDIA + collaborators. 46 pages.</p>
+    <!-- FCN3_SUMMARY -->
+    <h3>The problem: fast models blur or fizz; slow models cost a fortune</h3>
+    <p>FourCastNet 3 (Bonev, Kurth and colleagues at NVIDIA, LBNL, UC Berkeley, Caltech; v2, 18 July 2025) targets probabilistic weather forecasting from medium range out to subseasonal timescales. Traditional numerical weather prediction is accurate but so expensive that ensemble sizes stay small. ML models are fast but flawed in characteristic ways: deterministic ones blur toward an ensemble mean; probabilistic ones like GenCast and AIFS-CRPS accumulate spurious small-scale noise &mdash; a pattern that, in classical NWP, can precede numerical blow-up. And most leading ML weather models borrow architectures built for other tasks (transformers, graph nets) instead of respecting the sphere.</p>
+
+    <h3>Architecture: a spherical neural operator with two kinds of convolution</h3>
+    <p>FCN3 is framed as a hidden Markov model: given the 0.25&deg; atmospheric state at time t, predict t+6h. Stochasticity enters through conditioning noise drawn from 8 spherical Gaussian diffusion processes at different length scales (the Palmer stochastic-parametrization construction; spatial parameters k<sub>T</sub> from 3.08&times;10&#8315;&#8309; to 5.05&times;10&#8315;&sup1;) that evolve in time &mdash; each fixed noise seed defines one coherent ensemble member, so an ensemble is many forward passes with different seeds, with no iterative denoising. The processor alternates two convolution types: <strong>global</strong> convolutions parameterized spectrally via the spherical harmonic transform (the SFNO idea &mdash; the podcast's "assume a sphere," analogous to pseudo-spectral NWP) and <strong>local</strong> anisotropic discrete-continuous (DISCO) convolutions with a Morlet-wavelet filter basis (analogous to finite differencing; suited to tilted isentropic flow and topographic blocking), at a ratio of 4 local blocks per global block. Blocks adapt ConvNeXt but deliberately drop layer normalization &mdash; absolute magnitudes carry physical meaning &mdash; using careful initialization and learnable per-channel scaling instead. Three separate encoders (atmospheric, surface, auxiliary+noise) downsample 721&times;1440 to a 360&times;720 Gaussian grid without mixing channels of very different spectra (677 latent channels total); the decoder upsamples with bilinear spherical interpolation to avoid checkerboards; water channels pass through a positivity-enforcing "softclamp" spline. Unusually, FCN3 predicts the full next state rather than a tendency &mdash; residual prediction locked the model into Euler-like stepping and amplified high-frequency artifacts over rollouts. Total: 710,867,670 parameters.</p>
+
+    <h3>Training: CRPS in both physical and spectral space, at serious scale</h3>
+    <p>The objective is a composite <strong>CRPS</strong> (continuous ranked probability score &mdash; a proper scoring rule minimized only when the predicted distribution matches the truth): a pointwise ensemble-CRPS integrated over the sphere, <em>plus</em> a spectral CRPS on every spherical harmonic coefficient &mdash; because pointwise CRPS ignores spatial correlation (a spatially scrambled but marginally correct ensemble would score perfectly). NeuralGCM had a similar spectral idea but low-pass filtered it. The CRPS variant is scheduled: pre-training uses the biased estimator with 16 ensemble members (the "fair" unbiased CRPS can drive one member unbounded early &mdash; if one member hits the truth exactly, fair CRPS scores zero regardless of the others), then later stages switch to fair CRPS with 2 and 4 members. Data: ERA5 at 0.25&deg;, 72 variables (7 surface fields + 5 atmospheric fields at 13 pressure levels), 39.5 TB; train 1980&ndash;2016, test 2017, metrics on out-of-sample 2020. Compute: stage 1 on <strong>1024 H100s for 78 hours</strong> (208,320 steps, batch 16, ensemble 16, bf16, 1.34 s/step); stage 2 on 512 A100s for 15 hours (4-step rollouts); fine-tuning on 256 H100s for 8 hours (8-step rollouts, antithetic noise centering). One model instance exceeds 80 GB of GPU memory, so they built <strong>Makani</strong> (open source): the sphere itself is decomposed across GPUs &mdash; distributed spherical harmonic transforms, distributed DISCO convolutions with custom CUDA kernels, a distributed CRPS loss &mdash; combined with ensemble and batch parallelism to reach 1024+ GPUs.</p>
+
+    <h3>Results: IFS-ENS beaten, GenCast matched, spectra intact for 60 days</h3>
+    <p>On 12-hourly 2020 initial conditions with 50-member ensembles, FCN3 beats ECMWF's IFS-ENS on CRPS, ensemble-mean RMSE and anomaly correlation, and nearly matches GenCast &mdash; matching or slightly beating it on 15 of 16 scored variables at short leads, with 2 m temperature the exception. (Fairness notes the authors themselves make: GenCast is a 12-hourly model trained through 2019 vs FCN3's 6-hourly model trained through 2016; the longer timestep halves error accumulation.) Speed: a 15-day forecast in <strong>60 seconds on one H100</strong>, vs 8 minutes for GenCast on a TPU v5 at half the temporal resolution and about an hour for IFS on 96 AMD Epyc CPUs at 9 km &mdash; roughly 8&times; and 60&times;, "barring the differences in hardware and resolution" as the paper hedges. A 60-day forecast takes under 4 minutes on one GPU. Calibration: spread-skill ratios near 1 (slightly overdispersive to 24 h, underdispersive from 24&ndash;200 h), rank histograms confirming, with a small 850 hPa cold bias. The headline is <strong>spectral fidelity</strong>: angular power spectral density stays within &minus;0.2 to +0.2 relative error of ERA5 even at high wavenumbers, reproduces ERA5's T639 spectral cutoff, and remains accurate at 1440 hours &mdash; 60 days, 240 autoregressive steps &mdash; while GraphCast and NeuralGCM blur and GenCast and AIFS-CRPS accumulate noise. A single deterministic member also beats the IFS single-member forecast on RMSE and ACC. Extreme-event evidence is one case study: storm Dennis over Ireland and the British Isles, initialized 2020-02-11, with the figure caption citing prediction 5 days ahead &mdash; the paper contains no tropical-cyclone calibration tables (the podcast's Hurricane Lee story belongs to earlier FourCastNet deployments at ECMWF).</p>
+
+    <h3>Limitations and takeaway</h3>
+    <p>Stated limits: CRPS and RMSE are gameable, incomplete metrics; FCN3 carries model uncertainty only &mdash; no initial-condition perturbations (adding bred vectors might fix early-lead underdispersion); baselines were scored against ARCO-ERA5, which differs slightly from official ERA5; precipitation is absent (planned as a diagnostic). Two paper-internal discrepancies the summary preserves: Table 2 lists 8 local + 2 global processor blocks while a figure caption says 8 total, and the stage-2 sample count appears as both 55,460 and 55,400. Takeaway: geometry-respecting convolutions plus a dual-domain CRPS objective deliver GenCast-class skill at a fraction of the cost, with the spectral fidelity and 60-day stability that subseasonal large-ensemble forecasting needs. Code is open: Makani (github.com/NVIDIA/makani, Apache 2.0) and torch-harmonics (github.com/NVIDIA/torch-harmonics, BSD-3).</p>
+  </section>
+
+  <!-- ================= TAB 6: TORCHLEAN PAPER ================= -->
+  <section class="panel" id="p6">
+    <h2>TorchLean: Formalizing Neural Networks in Lean (arXiv 2602.22631)</h2>
+    <p class="muted">Robert Joseph George, Jennifer Cruden (Caltech), Will Adkisson (WashU St. Louis), Xiangru Zhong, Huan Zhang (UIUC), Anima Anandkumar (Caltech). v2, cs.MS, 24 May 2026. 55 pages. Read in full for this report.</p>
+
+    <h3>The problem: you verify one artifact and deploy another</h3>
+    <p>Neural networks increasingly sit in pipelines where mistakes have physical cost, and a whole verification ecosystem exists to bound their behavior &mdash; solver-based tools (Reluplex, Marabou) and bound-propagation methods (IBP, CROWN, DeepPoly). But verifiers typically consume an <em>exported</em> surrogate of the model: TorchScript, ONNX, FX, or a custom IR. The paper names four concrete failure modes of that pipeline. (1) <strong>Export boundaries create semantic drift</strong>: trace-based export misses control flow; ONNX operator meaning depends on opset versions; the exported graph may reflect only what one run executed. (2) <strong>Floating point invalidates idealized guarantees</strong>: verification is usually stated over real arithmetic, deployment is IEEE-754 with rounding, NaNs, signed zeros and backend-specific algorithm choices &mdash; and prior work (Jia &amp; Rinard 2020, and 2025 follow-ups) shows numerical error can refute robustness claims proved over the reals. (3) <strong>Certification stops short of the executed workflow</strong> &mdash; e.g. PINNs need certificates about derivatives, not just values. (4) <strong>Real ML bugs live at semantic boundaries</strong>: wrong shapes, silent broadcasts, dtype conversions, padding conventions, train/eval state, mask mistakes. A robustness certificate for the wrong padding convention is still a certificate &mdash; just not for your network.</p>
+
+    <h3>The idea: one graph, one meaning</h3>
+    <p>TorchLean makes the network definition the single semantic reference point, inside Lean 4 (a programming language and theorem prover with a small trusted kernel). Programs are written in a PyTorch-style API &mdash; typed tensors, layers, objectives, optimizers, data loaders, training loops &mdash; and lower to a shared <strong>operator-tagged SSA/DAG computation-graph IR</strong>. Every node carries an operator tag (<code>linear</code>, <code>relu</code>, <code>conv2d</code>, <code>attention</code>, ...) with a typed signature and a mathematical denotation. The same graph object is consumed by the executor, by reverse-mode autodiff, by IBP/CROWN bound propagation, and by certificate checkers. There is no export step to drift across. The same syntax can be interpreted over different scalar domains: exact reals for proofs, <code>Float32</code>/<code>IEEE32Exec</code> for execution, intervals or affine forms for verification.</p>
+
+    <h3>What is actually proved</h3>
+    <p>Shapes are part of tensor <em>types</em> (a tensor is an inductive, shape-indexed total index function), so ill-shaped programs do not typecheck and broadcasting is an explicit typed operation, not a silent runtime convention. The headline theorem (Theorem 2.1) is graph-parametric reverse-mode AD correctness: for any well-typed SSA/DAG graph over the reals satisfying local per-operator derivative-correctness hypotheses, backprop computes the adjoint Fr&eacute;chet derivative of the graph's denotation &mdash; with a pointwise variant for non-smooth points like ReLU at 0, where the executable convention is deterministic. The paper's own scope table is refreshingly explicit about status: shared IR semantics (kernel-checked definitions), reverse-mode AD (proved), compilation of the supported fragment (proved; full compiler correctness future work), IBP/CROWN transfer rules (proved subset, conservative fallbacks elsewhere), certificate checking (checked, with proved core), external solvers like &alpha;/&beta;-CROWN (untrusted producers), Float32 internal refinement IEEE32Exec &harr; rounded-real FP32 model (proved on finite executions, excluding NaN/Inf/overflow), and the link from deployed hardware Float32 to IEEE32Exec (assumed / external &mdash; the "hardware gap").</p>
+
+    <h3>Floating point as a first-class semantics</h3>
+    <p>Lean's built-in floats are opaque to the kernel, so TorchLean builds its own: <code>IEEE32Exec</code>, a Lean-defined bit-level model of IEEE-754 binary32 including signed zeros, subnormals, NaN/Inf and rounding; FP32/NF rounded-real proof models with compositional error envelopes (in the spirit of Coq's Flocq); Float32 endpoint interval arithmetic with proved soundness; and an explicit Arb/FLINT oracle boundary for rigorous transcendental enclosures. Stress tests justify the design: endpoint evaluation is not a reliable enclosure mechanism for transcendentals; directed rounding matters (a ties-to-even addition enclosable by IEEE32Exec directed endpoints can collapse under naive runtime Float32); signed-zero encodings can force principled interval widening.</p>
+
+    <h3>Verification: producers make bounds, Lean checks them</h3>
+    <p>Native IBP and CROWN/LiRPA-style affine propagation run directly on the shared IR, with soundness by induction over the same topological order that defines evaluation. When more tightness is needed, TorchLean switches to a certificate/checker architecture: external solvers (e.g. &alpha;/&beta;-CROWN on a GPU) are untrusted producers; Lean checks the finite artifact &mdash; shapes, operator tags, topological order, per-node affine bounds, &alpha; relaxation parameters, optional &beta; phase vectors &mdash; and the theorem shape is <code>checkCert(G, &Phi;, C) = true &rArr; &Phi;([[G]])</code>. CUDA kernels get the same treatment on the runtime side: every native call is attached to an operator tag whose meaning is already fixed by the shared semantics, with the conformance statement <code>native&tau;(x) &asymp; [[&tau;]]Float32(x)</code> recorded as a tested runtime assumption, not a proof. "CUDA provides an execution backend, not a second semantics."</p>
+
+    <h3>Results, with the numbers</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Path</th><th>Method</th><th>Safe / n</th><th>Time</th></tr>
+      <tr><td>Lean (fully checked)</td><td>IBP</td><td>0/30</td><td>6.05 s</td></tr>
+      <tr><td>Lean (fully checked)</td><td>CROWN-Obj</td><td>6/30</td><td>22.60 s</td></tr>
+      <tr><td>Lean (fully checked)</td><td>CROWN+&alpha;</td><td>6/30</td><td>14.21 s</td></tr>
+      <tr><td>CPU producer (untrusted)</td><td>&alpha;-CROWN</td><td>13/30</td><td>8.39 s</td></tr>
+      <tr><td>CUDA producer (untrusted, A100)</td><td>&alpha;-CROWN</td><td>13/30</td><td>7.67 s</td></tr>
+    </table></div>
+    <p class="muted">VNN-COMP-style MNIST-FC slice. GPU results become trusted claims only when their exported artifacts are replayed by the Lean checker.</p>
+    <p>Other case studies: <strong>certified robustness</strong> on the sklearn digits classifier (8&times;8 &rarr; 64 features &rarr; 10 classes, &epsilon; = 0.02): nominally correct on 349/360 test inputs, certified robust on 318/360, with a checker that costs 0.032 ms average and 0.057 ms maximum per example. <strong>Neural controller</strong> (two-stage Lyapunov pipeline, CEGIS-style): with Stage 1 weights fixed, Python Stage 2 takes &asymp;0.015 s and yields 9/10 positive-loss candidates; the all-TorchLean Stage 2 under explicit IEEE-754 Float32 semantics takes &asymp;1212 s and yields 7/10 &mdash; a candid ~80,000&times; slowdown as the price of bit-explicit semantics &mdash; plus a native CROWN enclosure on the scalar loss (upper bound &asymp;0.1869). <strong>PINN residual bounds</strong>: a viscous Burgers PINN trained in PyTorch, weights exported to JSON, then Lean computes interval enclosures for u, u', u'' via dedicated derivative bound-propagation passes on the forward graph (not by differentiating the backward graph) and certifies |R(u&theta;)(x)| &le; &epsilon; at verification points. <strong>Semantic bug zoo</strong>: broadcast-axis bias bugs, causal-mask/KV-cache leaks, and log-sum-exp overflow &mdash; each survives ordinary execution and export but is caught by typed shapes, mask contracts, or explicit finite-precision semantics.</p>
+
+    <h3>Modern-ML surface and theory appendices</h3>
+    <p>Beyond feed-forward classifiers, the formal surface includes attention with masks as part of the operator semantics, FlashAttention specified by equality to masked scaled-dot-product attention (fused kernels relate to the denotation by theorem, not by trust), Mamba/state-space layers as finite recurrences, diffusion noising/denoising transitions, Markov-kernel MDP semantics and RL returns/Bellman operators, and self-supervised objectives (MAE, JEPA-style predictive views, variance/covariance anti-collapse losses). The appendices mechanize a real-valued ReLU universal approximation theorem on compact sets (Theorem F.1), an exact-hull interval specification for Float32 semantics (F.2), and a three-term error decomposition for Float32-executed MLPs: total error &le; &epsilon;<sub>UAT</sub> + &epsilon;<sub>param</sub> + &epsilon;<sub>exec</sub> (F.4) &mdash; deliberately weaker than a full float interval-universal-approximation theorem, and stated so.</p>
+
+    <h3>Honest limitations</h3>
+    <p>The authors are clear: TorchLean is semantic infrastructure, not a throughput-optimized training stack. The verified fragment is smaller than PyTorch's surface; extending it means adding operator semantics, derivative rules, abstract transformers and finite-precision models per primitive. Native CUDA stays outside the kernel. The full &alpha;/&beta;-CROWN optimizer (parameter optimization, branch-and-bound) is not reimplemented in Lean &mdash; external solvers stay untrusted producers. The hardware-Float32-to-IEEE32Exec refinement is target-specific and not discharged. Related work is positioned against Isabelle/HOL network verification, SciLean (Lean scientific computing), TensorLib, Flocq, and a 2025 Lean formalization of Hopfield networks, which TorchLean complements with its own mechanized energy-decrease and convergence results.</p>
+  </section>
+
+  <!-- ================= TAB 7: REPO DEEP DIVE ================= -->
+  <section class="panel" id="p7">
+    <h2>The TorchLean repository, inspected file by file</h2>
+    <p class="muted">github.com/lean-dojo/TorchLean &middot; MIT license &middot; commit <code>4caafbb</code> (2026-08-22, "Major TorchLean API, runtime, and verification upgrade") &middot; toolchain <code>leanprover/lean4:v4.33.0</code> &middot; depends on mathlib v4.33.0 and doc-gen4 v4.33.0.</p>
+
+    <h3>Scale and honesty checks</h3>
+    <p>The Lean library under <code>NN/</code> is <strong>306,174 lines across ~1,364 .lean files</strong> (1,507 files in the repo overall). A raw grep counts <strong>2,633 top-level theorem/lemma declarations</strong> and <strong>8,201 definitions</strong>. The project metadata (<code>formalization.yaml</code>) claims <code>sorry_free: true</code> &mdash; I verified this myself: <code>grep -rw sorry NN</code> finds exactly two hits, both English prose ("sorry/admit-free", "shapes also admit zero dimensions"), zero proof holes. There are 129 <code>opaque</code>/<code>axiom</code>/<code>@[implemented_by]</code> markers, and <code>TRUST_BOUNDARIES.md</code> states the repo declares <em>no custom Lean axioms</em> &mdash; the CUDA buffer handle is an opaque <code>NonemptyType</code> data carrier, not an asserted proposition. The repo even ships an <code>AGENTS.md</code> instructing coding agents to treat the checkout as the source of truth and to run builds before claiming behavior works, plus an <code>AI_USAGE.md</code> disclosing assistant use.</p>
+
+    <h3>Module map</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Module</th><th>.lean files</th><th>What lives there</th></tr>
+      <tr><td><code>NN/Runtime</code></td><td>204</td><td>Executable autograd (tape + compiled graph), optimizers (SGD, momentum, Adagrad, RMSProp, Adam, AdamW, Adadelta), training loops, CSV/NPY loaders, checkpointing, PyTorch import/export, Gymnasium/RL boundary, Julia subprocess wrapper, CUDA FFI boundary.</td></tr>
+      <tr><td><code>NN/Proofs</code></td><td>169</td><td>Tensor algebra, autograd correctness (the Theorem 2.1 machinery), analytic derivatives, runtime-approximation and bridge proofs.</td></tr>
+      <tr><td><code>NN/MLTheory</code></td><td>137</td><td>CROWN/LiRPA (incl. Lyapunov two-stage pipelines), learning theory, optimization theory, generative and self-supervised objectives, universal approximation.</td></tr>
+      <tr><td><code>NN/Spec</code></td><td>124</td><td>Mathematical layer/model definitions: linear, conv, attention, FlashAttention denotation, normalization, quantization adapters.</td></tr>
+      <tr><td><code>NN/Floats</code></td><td>124</td><td>IEEE32Exec bit-level binary32, FP32/NF rounded-real models, interval arithmetic, Arb oracle bridge, NeuralFloat formats.</td></tr>
+      <tr><td><code>NN/Examples</code></td><td>114</td><td>Quickstarts, model zoo, BugZoo, interop, verification fixtures (see runnable surface below).</td></tr>
+      <tr><td><code>NN/Verification</code></td><td>89</td><td>Certificate checkers + the <code>verify</code> CLI: LiRPA, robustness, PINN, ODE, splines, 3D geometry, VNN-COMP.</td></tr>
+      <tr><td><code>NN/API</code></td><td>83</td><td>The stable application facade: <code>import NN.API</code>, <code>open TorchLean</code>.</td></tr>
+      <tr><td><code>NN/Tests</code> / <code>NN/GraphSpec</code> / <code>NN/Backend</code> / <code>NN/Widgets</code> / <code>NN/CI</code> / <code>NN/IR</code> / <code>NN/Core</code> / <code>NN/Tensor</code></td><td>41 / 24 / 18 / 17 / 9 / 8 / 2 / 1</td><td>Curated test suite, graph semantics + typed architecture descriptions, backend capsules/profiles/gates, editor widgets, CI aggregators, the SSA/DAG IR itself.</td></tr>
+    </table></div>
+
+    <h3>The build system (lakefile.lean, 13 KB, read in full)</h3>
+    <p>One package, several deliberate targets. The default target <code>NN</code> is the reusable library. Separate <code>lean_lib</code> targets keep examples (<code>NNExamples</code>), tests (<code>NNTests</code>), CI aggregators (<code>NNCI</code>) and docs (<code>TorchLeanDocs</code>) out of the reusable core. Six executables: <code>torchlean</code> (the example runner), <code>verify</code> (verification CLI), <code>nn_tests_suite</code> (native test driver &mdash; the comment explains the Lean interpreter cannot execute precompiled .olean definitions, hence a compiled runner), <code>torchlean_lint</code> (repo-policy lints, wired as the lint driver), <code>transcendentals_check</code> (self-checking autograd regression for exp/log/scale/shift/affine), and <code>libtorch_sdpa_test</code>. Four <code>extern_lib</code> native backends (<code>torchlean_dgemm_cuda</code>, <code>torchlean_cuda_kernels</code>, <code>torchlean_cuda_conv_pool</code>, <code>torchlean_cuda_tensor</code>): each compiles real CUDA (<code>nvcc</code>, cuBLAS/cuFFT) when built with <code>-K cuda=true</code>, and a portable C stub otherwise &mdash; so the package builds on machines with no CUDA toolkit. An optional LibTorch SDPA bridge (<code>-K libtorch=true</code>) links torch/c10 for fused attention. The CUDA path is POSIX-shaped (<code>/usr/local/cuda</code>, <code>-fPIC</code>, bash resolver script, g++ link flags): on Windows it is WSL-or-nothing, which matches how I installed it. Strict lean options are set project-wide: <code>autoImplicit false</code>, <code>relaxedAutoImplicit false</code>.</p>
+
+    <h3>The runnable surface: <code>lake exe torchlean &lt;subcommand&gt;</code></h3>
+    <p>Read from <code>NN/Examples/Models/Runner.lean</code> (259 lines):</p>
+    <div class="tablewrap"><table>
+      <tr><th>Group</th><th>Subcommands</th></tr>
+      <tr><td>Quickstarts</td><td><code>quickstart_tensors</code>, <code>quickstart_autograd</code>, <code>quickstart_mlp</code>, <code>quickstart_minibatch_mlp</code>, <code>quickstart_cnn</code></td></tr>
+      <tr><td>Supervised / vision</td><td><code>mlp</code>, <code>kan</code> (Kolmogorov-Arnold), <code>cnn</code>, <code>resnet</code>, <code>vit</code>, <code>lstm_regression</code></td></tr>
+      <tr><td>Generative</td><td><code>diffusion</code>, <code>autoencoder</code>, <code>mae</code>, <code>vae</code>, <code>vqvae</code>, <code>gan</code></td></tr>
+      <tr><td>Sequence</td><td><code>rnn</code>, <code>lstm</code>, <code>transformer</code>, <code>gpt2</code>, <code>gpt2_saved</code>, <code>text_gpt2</code>, <code>chargpt</code>, <code>gpt_adder</code>, <code>mamba</code></td></tr>
+      <tr><td>Scientific ML</td><td><code>fno1d_burgers</code> &mdash; a Fourier neural operator on 1D Burgers, straight from the podcast's world</td></tr>
+      <tr><td>RL</td><td><code>ppo_cartpole</code>, <code>ppo_gridworld</code>, <code>ppo_pong_ram</code>, <code>dqn_replay</code> (Gymnasium bridge via <code>scripts/rl/gymnasium_server.py</code>)</td></tr>
+      <tr><td>Data / interop</td><td><code>data_csv</code>, <code>data_npy</code>, <code>data_cifar10</code>, <code>pytorch_roundtrip</code>, <code>pytorch_export_check</code></td></tr>
+      <tr><td>Deep dives</td><td><code>float32_semantics</code>, <code>numerical_certificate</code>, <code>floats_arb_ieee_compare</code>, <code>graphspec</code>, <code>ir_axis_ops</code>, <code>one_semantic_universe</code>, <code>torch_ir_pytorch</code></td></tr>
+    </table></div>
+    <p>Every example is device-agnostic: CPU by default, <code>--device cuda</code> after a CUDA build. Scalar semantics is a flag: <code>--scalar float32</code> (fast native) vs <code>--scalar ieee32-exec</code> (the bit-level Lean model) vs <code>complex64</code>, and <code>--execution eager</code> vs <code>--execution typed-graph</code>. The built binary's help (captured from the working install) also reveals the ambition in the device enum &mdash; <code>auto|cpu|cuda|rocm|metal|wasm|tpu|trainium|custom|external</code> &mdash; plus <code>--seed</code>, <code>--show-backend</code>, and an interactive <code>--choose</code> mode. <code>lake exe verify -- list</code> prints the full tool registry with each fixture's default JSON path.</p>
+
+    <h3>The verification surface: <code>lake exe verify -- &lt;tool&gt;</code></h3>
+    <p>22 registered tools in <code>NN/Verification/CLI.lean</code>: five LiRPA IBP certificate checkers (<code>lirpa-mlp</code>, <code>lirpa-cnn</code>, <code>lirpa-attention</code>, <code>lirpa-gru</code>, <code>lirpa-encoder</code>) plus <code>margin-cert</code>, <code>abcrown-leaf</code> (&alpha;/&beta;-CROWN leaf artifact check), <code>torchlean-ibp</code>, <code>torchlean-transformer-ibp</code>, <code>torchlean-crown-ops</code>, <code>torchlean-mlp-workflow</code> (train with typed-graph execution, then IBP+CROWN), <code>torchlean-robustness</code>, <code>digits</code> and <code>digits-train-certify</code> (the paper's 318/360 workflow), <code>vnncomp-mnistfc</code> (the paper's Table 2), <code>pinn-cert</code>, <code>pinn-dataset-check</code>, <code>pinn-cli</code>, <code>ode</code>, <code>spline-cert</code> (with optional Julia regeneration), <code>camera-box3d-cert</code>, and three Lyapunov two-stage pipelines (<code>twostage-pythononly-certgen</code>, <code>twostage-hybrid-van-stage2</code>, <code>twostage-torchlean-cegis-van</code>). Most ship JSON fixture certificates under <code>NN/Examples/Verification/</code>, so they run out of the box with no external solver.</p>
+
+    <h3>The BugZoo</h3>
+    <p><code>NN/Examples/BugZoo/</code> is a 15-module catalogue of semantic-boundary failures, each one demonstrating a bug class that survives ordinary execution: <code>AttentionMask</code>, <code>KVCache</code> (future-token leaks), <code>RoPEPosition</code>, <code>ShapeAndBroadcast</code>, <code>StableLoss</code> (log-sum-exp overflow), <code>TokenizerBoundary</code>, <code>FloatBoundary</code>, <code>BatchInvariance</code>, <code>CompilerBoundary</code>, <code>AutogradDomain</code>, <code>NormalizationState</code>, <code>LayerNormDegenerateAxis</code>, <code>ConstantNormalizationSlice</code>, <code>IgnoredLabelLoss</code>, <code>Geometry3DProjection</code>.</p>
+
+    <h3>Trust boundaries, in the repo's own words</h3>
+    <p><code>TRUST_BOUNDARIES.md</code> (19 KB, read in full) defines five assurance levels &mdash; Lean theorem &rarr; executable checker &rarr; Prop-valued contract &rarr; FFI/native runtime &rarr; external producer &mdash; and demands claims name their level, "to avoid collapsing 'the command ran', 'the checker accepted this artifact', and 'Lean proved a mathematical statement' into one sentence." Notable specifics: CUDA buffers are borrowed (<code>@&amp;</code>) and native ops are <code>@[never_extract]</code> so the compiler cannot common or delete effectful calls; atomicAdd-based reductions are documented as non-bit-deterministic, with an opt-in deterministic mode (<code>TORCHLEAN_CUDA_DETERMINISTIC_REDUCTIONS=1</code>) covering reductions, scatter/gather backprop, and pooling backward; FlashAttention's fused kernel is <em>not</em> a clone of Dao-AILab's IO-tiled algorithm and is retained for parity checks; the canonical graph lowering "proves forward semantic preservation only. It must not be cited as an autograd or backward-certificate theorem." A table tells you which float layer to cite for which claim. This file is the best short document in the repo.</p>
+
+    <h3>Native code</h3>
+    <p><code>csrc/cuda/</code> holds four CUDA translation units plus their C stubs and a LibTorch SDPA bridge: <code>blas/torchlean_dgemm_cuda.cu</code> (cublasDgemm FP64 path), <code>kernels/torchlean_cuda_kernels.cu</code> (cublasSgemmStridedBatched FP32, attention, softmax, reductions), <code>conv_pool/</code>, <code>tensor/</code> (buffer runtime; stores float32, converts at the boundary), <code>kernels/torchlean_libtorch_sdpa.cpp</code>. Support scripts: <code>scripts/rl/gymnasium_server.py</code> (Python env server for PPO/DQN examples), <code>scripts/datasets/</code> (CIFAR-10/WikiText downloads, NPY conversion, training-log plots), <code>scripts/verification/splines/</code> (Julia producers), <code>scripts/checks/repo_lint.py</code>.</p>
+  </section>
+
+  <!-- ================= TAB 8: INSTALL LOG ================= -->
+  <section class="panel" id="p8">
+    <h2>Install log: what actually happened on this machine</h2>
+    <p>You asked for the full build. Here is the honest sequence, including the failure that turned out to be your antivirus.</p>
+
+    <h3>Step 1 &mdash; Native Windows attempt (failed, root cause found)</h3>
+    <p>The repo cloned cleanly into <code>C:\Users\simon\Downloads\torchlean_latent\TorchLean</code>. <code>elan 4.2.3</code> was already installed, and the pinned toolchain <code>leanprover/lean4:v4.33.0</code> downloaded fine. Then <code>lake exe cache get</code> failed while linking mathlib's cache tool:</p>
+    <pre><code>clang: error: invalid linker name in argument '-fuse-ld=lld'
+error: external command '...\bin\clang.exe' exited with code 1</code></pre>
+    <p>Diagnosis chain: the Lean Windows toolchain ships <code>lld.exe</code>, but clang's MinGW driver (target <code>x86_64-w64-windows-gnu</code>) looks for <code>ld.lld.exe</code>. I created that alias &mdash; and it vanished within seconds. Recreated it in <code>%TEMP%</code> &mdash; vanished again. Then the <em>original</em> <code>lld.exe</code> disappeared from <strong>both</strong> installed toolchains (v4.33.0 and v4.34.0-rc2).</p>
+    <div class="callout">
+      <strong>Root cause: Malwarebytes is deleting the LLD linker</strong> &mdash; all evidence points to it, and its Detection history will confirm the exact rule. The security center lists Malwarebytes as the active AV (<code>MBAMService</code> running); Windows Defender is passive (its service returns 0x800106ba, and <code>Get-MpThreatDetection</code> is empty, so Defender did not do this); a McAfee registration from Dec 2024 looks like a stale leftover. Every file named <code>ld.lld.exe</code> or copied from <code>lld.exe</code> was silently removed on sight &mdash; a false positive on the LLVM linker. Without a linker, the Lean toolchain cannot produce any executable on native Windows.
+      <br><br><strong>Your options (I did not touch Malwarebytes):</strong> open Malwarebytes &rarr; Detection history / Quarantine &rarr; restore the <code>lld.exe</code> entries, and add an exclusion for <code>C:\Users\simon\.elan\</code>. Then <code>elan toolchain uninstall leanprover/lean4:v4.33.0</code> and reinstall to get a clean toolchain. Native Windows builds should work after that. Also worth removing the stale McAfee entry.
+    </div>
+
+    <h3>Step 2 &mdash; WSL2 Ubuntu build (the working path)</h3>
+    <p>WSL2 Ubuntu 24.04 was already installed and running (12 CPUs, ~15 GB RAM, 940 GB free). This is also the only lane where TorchLean's CUDA build can ever work &mdash; the lakefile's CUDA path is POSIX-only. Steps executed:</p>
+    <pre><code># inside WSL Ubuntu
+curl -sSfL https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain none   # elan 4.2.4
+git clone --depth 50 https://github.com/lean-dojo/TorchLean ~/TorchLean   # commit 4caafbb, 2026-08-22
+cd ~/TorchLean
+lake exe cache get     # downloads the prebuilt mathlib cache (several GB)
+lake build             # builds TorchLean itself (~1,360 Lean files)</code></pre>
+    <div id="build-result-block">
+      <p><span class="pill ok">SUCCESS</span> <code>lake exe cache get</code> downloaded and decompressed <strong>8,690 prebuilt mathlib files</strong> (the same step that failed on native Windows), and <code>lake build</code> finished cleanly:</p>
+      <pre><code>Decompressed 8690 file(s)
+...
+&#10004; [4172/4173] Built NN (1.9s)
+Build completed successfully (4173 jobs).</code></pre>
+      <p>Total footprint: ~8.1 GB under <code>~/TorchLean/.lake</code> plus the v4.33.0 toolchain. The first <code>lake exe torchlean ...</code> invocation additionally compiled the examples library and linked the runner (7,884 total jobs, 5m33s one-time); later runs start instantly.</p>
+    </div>
+
+    <h3>Step 3 &mdash; Verification runs</h3>
+    <p>Per the house rule &mdash; verify by observed effects, not by a clean exit &mdash; the install only counts once real commands produce real output:</p>
+    <div id="verify-result-block">
+      <p><span class="pill ok">VERIFIED</span> Four real runs, output verbatim (trimmed to the payload lines):</p>
+      <pre><code>$ lake exe torchlean quickstart_mlp --device cpu --steps 10 --scalar float32 --execution eager
+== Quickstart: simple MLP training ==
+seed  = 0
+steps = 10
+dataset size = 25
+mean_loss(before) = 1.349908
+step 0: loss=2.328068
+mean_loss(after) = 1.247884
+predict(heldout) = [0.095897]
+
+$ lake exe verify -- torchlean-ibp
+=== TorchLean -&gt; IR -&gt; IBP (small MLP) workflow ===
+[TorchLean] scalar: native IEEE-754 binary32
+lowered IR nodes: 18
+output box lo: [1.904000]
+output box hi: [2.256001]
+
+$ lake exe verify -- lirpa-mlp          # 3.7s
+IBP certificate verified: serialized bounds enclose Lean recomputation.
+
+$ lake exe verify -- margin-cert        # 3.7s
+[margin cert] examples=360
+[margin cert] nominal_ok=349 (requires 'pred' in examples)
+[margin cert] certified_ok=318</code></pre>
+      <div class="callout teal"><strong>Note the last one:</strong> 349/360 nominal, 318/360 certified robust &mdash; the exact numbers from the paper's certified-robustness case study (Section 3), reproduced on this laptop in 3.7 seconds. The install is real.</div>
+    </div>
+  </section>
+
+  <!-- ================= TAB 9: PROJECTS ================= -->
+  <section class="panel" id="p9">
+    <h2>Projects you can run with TorchLean on this laptop</h2>
+    <p>Grounded in commands that exist in the repo (Repo Deep Dive tab) and in this machine's real limits (Overview tab). Two lanes: <span class="pill ok">CPU / WSL</span> works today with the build from the Install Log; <span class="pill ok">CUDA / WSL</span> also works as of 2026-08-26 — the toolkit was installed and verified by a real GPU run (see the Feasibility tab) — and lives within the RTX 3050's 4 GB VRAM.</p>
+    <div id="projects-body">
+
+      <h3>1. Prove your first robustness certificate, end to end <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> the paper's flagship workflow (318/360 certified digits), on your laptop, in one command. It trains a small classifier on sklearn digits <em>inside Lean</em>, lowers it to the shared IR, runs IBP and CROWN, and prints a certified-accuracy report where the robustness claim is a checked statement about the same graph that was trained.</p>
+      <pre><code>cd ~/TorchLean   # in WSL
+lake exe verify -- digits-train-certify --epochs=5 --max=20
+lake exe verify -- margin-cert          # replay a logit-margin certificate fixture</code></pre>
+      <p><strong>Cost:</strong> minutes on the i5. <strong>Why start here:</strong> it touches every layer of the system (training, lowering, bounds, checking) and produces a readable artifact.</p>
+
+      <h3>2. Certify a tiny trading-signal classifier <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> your recurring theme (RegimeBot-style signal models) meets formal verification. Build a downstream Lean package that depends on TorchLean (<code>require TorchLean from git "https://github.com/lean-dojo/TorchLean.git" @ "main"</code>), load your own feature CSV with the built-in loader, train a small MLP regime classifier with the <code>Trainer</code> API, then run the margin-certification workflow: a Lean-checked statement that the predicted regime does not flip when each input feature is perturbed by up to &epsilon;. That is a real, novel artifact: a trading signal with a machine-checked robustness radius instead of a vibes-based one.</p>
+      <pre><code>lake exe torchlean data_csv --steps 30 --batch 5 --scalar float32 --execution eager   # the loader pattern
+lake exe verify -- torchlean-mlp-workflow   # train-with-typed-graph -> IBP+CROWN, the template to copy</code></pre>
+      <p><strong>Cost:</strong> a weekend project; the MLP itself trains in seconds. Sensible scope: 5&ndash;20 input features, 2&ndash;3 layers, 3-class output (up / flat / down).</p>
+
+      <h3>3. Run a Fourier neural operator &mdash; the podcast, executable <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> the bridge between the two halves of this source set. <code>fno1d_burgers</code> trains an FNO (the 2010.08895 architecture) on 1D viscous Burgers &mdash; the same PDE the TorchLean paper's PINN case study certifies &mdash; with spectral layers running under Lean's typed tensor semantics.</p>
+      <pre><code>lake exe torchlean fno1d_burgers --device cpu --steps 50
+lake exe verify -- pinn-cert            # then check a Burgers PINN residual certificate
+lake exe verify -- pinn-dataset-check   # and the dataset-containment precondition</code></pre>
+      <p><strong>Cost:</strong> minutes. <strong>Extension:</strong> train the PINN side in PyTorch (WSL Python), export weights to JSON with the repo's scripts, and have Lean certify the residual bound &mdash; the full untrusted-producer / Lean-checker loop from Appendix E of the paper.</p>
+
+      <h3>4. Turn the BugZoo into a Claude Code review skill <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> the highest-leverage project for your harness work, and it needs no training at all. <code>NN/Examples/BugZoo/</code> is a curated catalogue of 15 semantic bug classes that survive ordinary execution: attention-mask leaks, KV-cache staleness, RoPE position errors, silent broadcasts, unstable log-sum-exp, tokenizer boundaries, batch-invariance violations, degenerate LayerNorm axes, ignored-label losses, and more. Read each module (they are small and each states the intended semantics next to the broken one), then mint a code-review skill whose checklist is exactly these 15 classes applied to PyTorch code. TorchLean's typed contracts become your reviewer's eyes in untyped Python.</p>
+      <pre><code>lake build NNExamples          # compiles the BugZoo modules (the type errors ARE the lesson)
+ls NN/Examples/BugZoo/</code></pre>
+      <p><strong>Cost:</strong> reading time only. <strong>Deliverable:</strong> a <code>semantic-bug-review</code> skill + one HTML cheat-sheet per bug class.</p>
+
+      <h3>5. Reproduce the paper's benchmark table locally <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> the paper's Table 2 (VNN-COMP-style MNIST-FC slice: Lean IBP 0/30 in 6.05 s, CROWN-Obj 6/30 in 22.60 s, CROWN+&alpha; 6/30 in 14.21 s) was measured on their hardware. Run the same suite on the i5-12450H and publish your timings next to theirs. Add the &alpha;/&beta;-CROWN leaf-artifact check and the five LiRPA fixture checkers for a complete "what does checked verification cost on a laptop" post.</p>
+      <pre><code>lake exe verify -- vnncomp-mnistfc
+lake exe verify -- abcrown-leaf
+for t in lirpa-mlp lirpa-cnn lirpa-attention lirpa-gru lirpa-encoder; do lake exe verify -- $t; done</code></pre>
+      <p><strong>Cost:</strong> under an hour, most of it writing the comparison up.</p>
+
+      <h3>6. GPT-2 with checkable attention semantics <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> the sequence-model corner. Train <code>chargpt</code> or the cute <code>gpt_adder</code> (a GPT that learns addition) on CPU; then use <code>pytorch_roundtrip</code> to import/export weights across the PyTorch boundary and see what an <em>explicit</em> interop trust boundary looks like. Pair it with the BugZoo's <code>KVCache</code> and <code>AttentionMask</code> modules &mdash; the exact bugs that plague real inference stacks, here stated as violated contracts.</p>
+      <pre><code>lake exe torchlean gpt_adder --steps 200
+lake exe torchlean chargpt --steps 100
+lake exe torchlean pytorch_roundtrip --model mlp --action import</code></pre>
+      <p><strong>Cost:</strong> minutes per run at example scale; these are teaching-scale models, not leaderboard models &mdash; the paper says so itself.</p>
+
+      <h3>7. RL with typed rollouts: PPO CartPole <span class="pill ok">CPU / WSL</span></h3>
+      <p><strong>What:</strong> PPO where returns, advantages, and Bellman operators have Lean specifications, driving a real Gymnasium environment over the repo's Python bridge (<code>scripts/rl/gymnasium_server.py</code>). Pure-Lean <code>ppo_gridworld</code> needs no Python at all; <code>ppo_cartpole</code> exercises the external-simulator boundary.</p>
+      <pre><code>pip install gymnasium   # in WSL, once
+lake exe torchlean ppo_gridworld --steps 100     # no Python needed
+lake exe torchlean ppo_cartpole                  # Gymnasium boundary</code></pre>
+      <p><strong>Cost:</strong> minutes. <strong>Why interesting:</strong> control loops are exactly where Anandkumar says verification matters &mdash; this is the toy version of the drone/reactor story.</p>
+
+      <h3>8. The CUDA lane: build the GPU backend and measure determinism <span class="pill ok">CUDA / WSL &mdash; UNBLOCKED 2026-08-26</span></h3>
+      <p class="muted">Update 2026-08-26: the one-time setup below is DONE and verified &mdash; toolkit 13.1 installed, all four CUDA targets built, MLP trained on the GPU. Full story in the Feasibility tab. Only the determinism experiment itself remains.</p>
+      <p><strong>What:</strong> the RTX 3050 (4 GB) is enough for every example model in this repo. One-time setup: install the CUDA toolkit inside WSL Ubuntu (the Windows driver 592.82 already passes the GPU through). Then rebuild with the CUDA flag and run the same models on the GPU. The genuinely novel experiment: TorchLean documents that its atomicAdd reduction paths are not bit-deterministic and ships an opt-in fixed-order mode &mdash; measure the run-to-run gradient variance with and without <code>TORCHLEAN_CUDA_DETERMINISTIC_REDUCTIONS=1</code>, and the speed cost of bit-stable training. Nobody has published that number for this framework.</p>
+      <pre><code>sudo apt install cuda-toolkit   # or NVIDIA's WSL repo; ~3 GB
+lake -R -K cuda=true build
+lake exe torchlean mlp --device cuda --steps 1000
+TORCHLEAN_CUDA_DETERMINISTIC_REDUCTIONS=1 lake exe torchlean mlp --device cuda --steps 1000</code></pre>
+      <p><strong>Cost:</strong> ~1 h setup + the rebuild. <strong>Limits to respect:</strong> 4 GB VRAM caps batch sizes; the optional LibTorch SDPA bridge (<code>-K libtorch=true</code>) adds a ~2 GB download and is skippable.</p>
+
+      <h3>Also worth knowing</h3>
+      <p class="muted">The three Lyapunov controller pipelines (<code>twostage-*</code>) run on CPU but the all-Lean Stage 2 took &asymp;1212 s in the paper &mdash; feasible overnight, not interactive. <code>lake build TorchLeanDocs:docs</code> builds the full API docs locally via doc-gen4. The editor widgets (<code>NN/Widgets</code>, <code>#...view</code> commands) work in VS Code with the Lean 4 extension pointed at the WSL checkout. And once Malwarebytes is told to leave <code>lld.exe</code> alone (Install Log tab), the whole CPU lane also works natively on Windows.</p>
+    </div>
+  </section>
+
+  <!-- ================= TAB 10: FEASIBILITY ================= -->
+  <section class="panel" id="p10">
+    <h2>Feasibility: meaningful TorchLean projects on this machine</h2>
+    <p class="muted">Assessed 2026-08-26, by doing rather than by reading specs. Every claim below is an observed result from a real command on this laptop.</p>
+
+    <div class="card">
+      <p><span class="pill ok">VERDICT: FEASIBLE &mdash; BOTH LANES PROVEN</span> The CPU lane was proven in the last session (full build, four verification workflows, the paper's 318/360 result in 3.7&nbsp;s). The CUDA lane was proven <em>today</em>: the CUDA toolkit was installed inside WSL, all four GPU targets compiled, and a real training run completed on the RTX&nbsp;3050 &mdash; <code>device=cuda</code>, 200 steps, loss <strong>0.264566 &rarr; 0.010684</strong>, <code>torchlean mlp: ok</code>, about 51&nbsp;s wall clock including the rebuild. Every project in the Projects tab now runs on this machine, on either lane.</p>
+    </div>
+
+    <h3>The considerations, each tied to a measured fact</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Consideration</th><th>Measured fact</th><th>What it means for projects</th></tr>
+      <tr><td>CPU compute</td><td>i5-12450H, 8 cores / 12 threads</td><td>Every CPU example runs in seconds to minutes. The one slow known case: the all-Lean Lyapunov Stage&nbsp;2 (&asymp;1212&nbsp;s in the paper) &mdash; fine, since overnight runs are in scope.</td></tr>
+      <tr><td>GPU compute</td><td>RTX 3050 Laptop, 4&nbsp;GB VRAM, visible in WSL via <code>nvidia-smi</code></td><td>Enough for every example model in the repo. Not enough for anything near FourCastNet scale (trained on 1,024 H100s &mdash; FourCastNet&nbsp;3 tab). This laptop is for teaching-scale and certification-scale work, which is exactly what TorchLean ships.</td></tr>
+      <tr><td>Driver&ndash;toolkit coupling</td><td>Driver 592.82 supports CUDA <strong>&le; 13.1</strong>; nvidia-smi says so</td><td>The single sharpest gotcha found today. The newest toolkit (13.3) compiles fine but fails at kernel launch with PTX error 222. The toolkit must not be newer than the driver&rsquo;s CUDA ceiling. Pinned: <code>/usr/local/cuda &rarr; cuda-13.1</code> (update-alternatives, manual mode).</td></tr>
+      <tr><td>RAM</td><td>32&nbsp;GB total; WSL sees 15&nbsp;GB (default half, no <code>memory=</code> line in <code>.wslconfig</code>)</td><td>Enough for everything tried so far; mathlib comes from cache so the hungry compiles never happen. If a project ever swaps, add <code>memory=24GB</code> to <code>~/.wslconfig</code> &mdash; one line.</td></tr>
+      <tr><td>Disk</td><td>313&nbsp;GB free on C:; WSL vhdx has room (926&nbsp;GB virtual free). CUDA toolkits: 13.1 = 3.6&nbsp;GB, 13.3 = 4.7&nbsp;GB</td><td>No constraint. The stray 13.3 toolkit can be purged for 4.7&nbsp;GB back (<code>apt-get remove 'cuda*-13-3' 'libcu*-13-3'</code>) &mdash; optional.</td></tr>
+      <tr><td>OS lane</td><td>Native Windows still blocked: Malwarebytes deletes <code>lld.exe</code> (Install Log tab)</td><td>Decision made 2026-08-26: WSL <em>is</em> the lane; the Malwarebytes fix stays on the shelf. Nothing in the project list needs native Windows.</td></tr>
+      <tr><td>Network</td><td>NVIDIA&rsquo;s CDN dropped large downloads repeatedly today (I/O errors mid-transfer; one 426&nbsp;MB deb took 11 resume attempts)</td><td>One-time cost, already paid. If apt ever complains about half-installed Nsight profiler packages, run <code>apt-get -f install</code> on a good connection &mdash; cosmetic, does not affect builds.</td></tr>
+      <tr><td>Power/thermals</td><td>Laptop chassis</td><td>For overnight runs: plug in and keep the lid open or set lid-close to &ldquo;do nothing&rdquo;. No measured throttling in today&rsquo;s short runs.</td></tr>
+    </table></div>
+
+    <h3>What it took to unlock the GPU lane today, exactly</h3>
+    <p>Recorded because each failure is a reusable lesson, and because the errors are generic CUDA-on-WSL, not TorchLean-specific.</p>
+    <div class="tablewrap"><table>
+      <tr><th>Step</th><th>What happened</th><th>Fix</th></tr>
+      <tr><td>Install <code>cuda-toolkit</code> (latest = 13.3)</td><td>Compiled all 4 CUDA targets, then kernel launch failed: <code>the provided PTX was compiled with an unsupported toolchain (222)</code></td><td>Driver 592.82 caps at CUDA 13.1. Installed <code>cuda-toolkit-13-1</code> instead.</td></tr>
+      <tr><td>Install <code>cuda-toolkit-13-1</code></td><td>NVIDIA CDN dropped connections mid-download; apt left <code>cuda-nvcc-13-1</code> unpacked-but-unconfigured (<code>iU</code>); nvcc ran but its internal compiler <code>cicc</code> was missing</td><td>Fetched the missing debs directly with <code>wget -c --tries=30</code> + <code>dpkg -i</code>: <code>libnvvm-13-1</code> (ships cicc), then <code>libcublas-13-1</code> + <code>-dev</code> (372 + 426&nbsp;MB), then <code>libcufft-13-1</code> + <code>-dev</code></td></tr>
+      <tr><td>Stale objects</td><td>lake cached the 13.3-compiled objects; traces do not hash the compiler</td><td><code>rm -f .lake/build/*cuda*</code> (40 artifacts), rebuild &mdash; only the 4 CUDA targets recompile</td></tr>
+      <tr><td>Run <code>mlp --device cuda</code></td><td>Needed <code>python3-numpy</code> (apt) and the Auto MPG CSV (<code>scripts/datasets/download_example_data.py --auto-mpg</code>, 392 rows)</td><td>Both installed; then: <strong>loss 0.264566 &rarr; 0.010684 in 200 steps, exit ok</strong></td></tr>
+    </table></div>
+    <p>The complete external-header surface of the CUDA backend, checked against the source: <code>cuda_runtime.h</code>, <code>cublas_v2.h</code>, <code>cufft.h</code>. Nothing else. The optional LibTorch SDPA bridge (<code>-K libtorch=true</code>) stays uninstalled, as scoped.</p>
+
+    <h3>What this machine cannot do &mdash; the honest ceilings</h3>
+    <p>Three real limits, none of which block the project list. First: <strong>4&nbsp;GB VRAM</strong> caps batch and model size at example scale; anything approaching modern leaderboard scale is out, and the TorchLean paper itself says its models are teaching-scale. Second: <strong>run-to-run bit-determinism on the GPU is off by default</strong> &mdash; the repo documents non-deterministic atomicAdd reductions and ships <code>TORCHLEAN_CUDA_DETERMINISTIC_REDUCTIONS=1</code>; measuring that gap is itself Project&nbsp;8. Third: <strong>native Windows stays blocked</strong> until the Malwarebytes quarantine restore + exclusion happens; by decision, this no longer matters.</p>
+
+    <h3>The project sequence, ranked for the stated goal</h3>
+    <p>Stated goal (2026-08-26): <strong>deep understanding + a shippable artifact</strong>, overnight runs acceptable, GPU lane wanted. Full commands and costs live in the Projects tab; this is the order and the why.</p>
+    <div class="tablewrap"><table>
+      <tr><th>Order</th><th>Project (Projects tab #)</th><th>Lane</th><th>Why this order</th></tr>
+      <tr><td>1</td><td>#1 &mdash; robustness certificate end to end</td><td>CPU</td><td>Deepest understanding per minute: touches training, lowering, IBP/CROWN, and checking in one command. Already half-proven by <code>margin-cert</code>.</td></tr>
+      <tr><td>2</td><td>#4 &mdash; BugZoo &rarr; Claude Code review skill</td><td>none needed</td><td>The shippable artifact with the best fit to your harness work. Reading time only; 15 bug classes become a reusable reviewer.</td></tr>
+      <tr><td>3</td><td>#8 &mdash; CUDA determinism measurement</td><td>GPU</td><td>Setup is now DONE (this tab). The remaining experiment is one env-var A/B, and the number &mdash; gradient variance and the speed cost of bit-stable training on consumer hardware &mdash; is publishable; nobody has it for this framework.</td></tr>
+      <tr><td>4</td><td>#2 &mdash; certified trading-signal classifier</td><td>CPU</td><td>The novel shippable: your RegimeBot theme with a machine-checked robustness radius. Weekend scope.</td></tr>
+      <tr><td>5</td><td>#3, #5, #6, #7</td><td>CPU/GPU</td><td>FNO-on-Burgers, benchmark reproduction, GPT-2 roundtrip, PPO &mdash; each deepens one corner; pick by curiosity after 1&ndash;4.</td></tr>
+    </table></div>
+
+    <h3>System state left behind, for the record</h3>
+    <p class="muted">Installed in WSL Ubuntu 24.04 today: <code>cuda-toolkit-13-1</code> (pinned via <code>update-alternatives --set cuda /usr/local/cuda-13.1</code>), <code>libnvvm-13-1</code>, <code>libcublas(-dev)-13-1</code>, <code>libcufft(-dev)-13-1</code>, <code>python3-numpy</code>; plus the Auto MPG dataset under <code>~/TorchLean/data/real/auto_mpg/</code> and a train log at <code>data/model_zoo/mlp_trainlog.json</code>. Leftovers: cuda-13.3 (4.7&nbsp;GB, purgeable), half-configured Nsight profiler packages (harmless; <code>apt-get -f install</code> when the CDN behaves), downloaded debs in WSL <code>/tmp</code> (clear on reboot). Build log: <code>~/tl_cuda_build.log</code>.</p>
+  </section>
+</div>
+</body>
+</html>

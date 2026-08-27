@@ -119,7 +119,7 @@
     <h2>Install status</h2>
     <div id="install-status-card" class="card">
       <p><span class="pill ok">INSTALLED &amp; VERIFIED</span> Full build completed in WSL2 Ubuntu: <strong>4,173 jobs, exit 0</strong> (mathlib served from cache, 8,690 prebuilt files). Verified by real runs, not by exit codes: the quickstart MLP trained (loss 1.349908 &rarr; 1.247884 over 10 steps), the IBP workflow bounded a lowered 18-node graph, a LiRPA certificate replayed, and <code>margin-cert</code> reproduced the paper's exact headline result &mdash; 349/360 nominal, <strong>318/360 certified robust</strong> &mdash; in 3.7 s on this laptop. Full transcript in the Install Log tab.</p>
-      <p class="muted">Native Windows remains blocked by a Malwarebytes false positive that deletes the LLD linker (details + fix in the Install Log tab). The working checkout lives at <code>\\wsl$\Ubuntu\home\az9713\TorchLean</code>; the Windows-side clone at <code>Downloads\torchlean_latent\TorchLean</code> is for reading.</p>
+      <p class="muted">Native Windows remains blocked by a Malwarebytes false positive that deletes the LLD linker (details + fix in the Install Log tab). The working checkout lives at <code>\\wsl$\Ubuntu\home\&lt;you&gt;\TorchLean</code>; the Windows-side clone at <code>Downloads\torchlean_latent\TorchLean</code> is for reading.</p>
     </div>
   </section>
 
@@ -329,13 +329,13 @@
     <p>You asked for the full build. Here is the honest sequence, including the failure that turned out to be your antivirus.</p>
 
     <h3>Step 1 &mdash; Native Windows attempt (failed, root cause found)</h3>
-    <p>The repo cloned cleanly into <code>C:\Users\simon\Downloads\torchlean_latent\TorchLean</code>. <code>elan 4.2.3</code> was already installed, and the pinned toolchain <code>leanprover/lean4:v4.33.0</code> downloaded fine. Then <code>lake exe cache get</code> failed while linking mathlib's cache tool:</p>
+    <p>The repo cloned cleanly into <code>C:\Users\&lt;you&gt;\Downloads\torchlean_latent\TorchLean</code>. <code>elan 4.2.3</code> was already installed, and the pinned toolchain <code>leanprover/lean4:v4.33.0</code> downloaded fine. Then <code>lake exe cache get</code> failed while linking mathlib's cache tool:</p>
     <pre><code>clang: error: invalid linker name in argument '-fuse-ld=lld'
 error: external command '...\bin\clang.exe' exited with code 1</code></pre>
     <p>Diagnosis chain: the Lean Windows toolchain ships <code>lld.exe</code>, but clang's MinGW driver (target <code>x86_64-w64-windows-gnu</code>) looks for <code>ld.lld.exe</code>. I created that alias &mdash; and it vanished within seconds. Recreated it in <code>%TEMP%</code> &mdash; vanished again. Then the <em>original</em> <code>lld.exe</code> disappeared from <strong>both</strong> installed toolchains (v4.33.0 and v4.34.0-rc2).</p>
     <div class="callout">
       <strong>Root cause: Malwarebytes is deleting the LLD linker</strong> &mdash; all evidence points to it, and its Detection history will confirm the exact rule. The security center lists Malwarebytes as the active AV (<code>MBAMService</code> running); Windows Defender is passive (its service returns 0x800106ba, and <code>Get-MpThreatDetection</code> is empty, so Defender did not do this); a McAfee registration from Dec 2024 looks like a stale leftover. Every file named <code>ld.lld.exe</code> or copied from <code>lld.exe</code> was silently removed on sight &mdash; a false positive on the LLVM linker. Without a linker, the Lean toolchain cannot produce any executable on native Windows.
-      <br><br><strong>Your options (I did not touch Malwarebytes):</strong> open Malwarebytes &rarr; Detection history / Quarantine &rarr; restore the <code>lld.exe</code> entries, and add an exclusion for <code>C:\Users\simon\.elan\</code>. Then <code>elan toolchain uninstall leanprover/lean4:v4.33.0</code> and reinstall to get a clean toolchain. Native Windows builds should work after that. Also worth removing the stale McAfee entry.
+      <br><br><strong>Your options (I did not touch Malwarebytes):</strong> open Malwarebytes &rarr; Detection history / Quarantine &rarr; restore the <code>lld.exe</code> entries, and add an exclusion for <code>C:\Users\&lt;you&gt;\.elan\</code>. Then <code>elan toolchain uninstall leanprover/lean4:v4.33.0</code> and reinstall to get a clean toolchain. Native Windows builds should work after that. Also worth removing the stale McAfee entry.
     </div>
 
     <h3>Step 2 &mdash; WSL2 Ubuntu build (the working path)</h3>

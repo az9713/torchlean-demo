@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>TorchLean Test Suite Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#0f172a;
+  --card:#1e293b;
+  --well:#0b1220;
+  --line:#1e293b;
+  --line-strong:#334155;
+  --text:#e2e8f0;
+  --text-2:#cbd5e1;
+  --muted:#94a3b8;
+  --warm:#fb923c;
+  --cool:#2dd4bf;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --measure:70ch;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.62;
+}
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px 96px}
+p,li{max-width:var(--measure)}
+a{color:var(--cool)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--cool);outline-offset:3px;border-radius:3px}
+
+/* ---- masthead ---- */
+.mast{padding:64px 0 40px;border-bottom:1px solid var(--line-strong)}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--cool);margin:0 0 18px
+}
+h1{
+  font-family:var(--mono);font-weight:600;font-size:clamp(30px,5.2vw,46px);
+  line-height:1.12;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance
+}
+.lede{font-size:19px;color:var(--text-2);margin:0}
+
+/* ---- stat strip ---- */
+.stats{
+  display:grid;gap:1px;background:var(--line-strong);
+  border:1px solid var(--line-strong);border-radius:6px;overflow:hidden;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:36px 0 0
+}
+.stat{background:var(--card);padding:16px 18px}
+.stat b{
+  display:block;font-family:var(--mono);font-size:26px;font-weight:600;
+  color:var(--cool);font-variant-numeric:tabular-nums;line-height:1.2
+}
+.stat span{
+  display:block;font-family:var(--mono);font-size:11px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);margin-top:5px
+}
+
+/* ---- table of contents ---- */
+.toc{margin:40px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px;max-width:none}
+.toc li{max-width:none}
+.toc a{
+  display:inline-block;font-family:var(--mono);font-size:13px;text-decoration:none;
+  color:var(--text-2);background:var(--card);border:1px solid var(--line-strong);
+  border-radius:4px;padding:5px 11px
+}
+.toc a:hover{color:var(--cool);border-color:var(--cool)}
+
+/* ---- sections ---- */
+section{padding-top:56px}
+h2{
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--warm);margin:0 0 6px
+}
+h2 + .h2sub{
+  font-family:var(--sans);font-size:26px;font-weight:600;color:var(--text);
+  margin:0 0 22px;line-height:1.25;text-wrap:balance;max-width:var(--measure)
+}
+h3{font-size:18px;font-weight:600;margin:32px 0 8px;color:var(--text)}
+code{font-family:var(--mono);font-size:.9em;color:var(--cool);word-break:break-word}
+strong{color:#fff;font-weight:600}
+
+/* ---- console + code wells ---- */
+.well{
+  background:var(--well);border:1px solid var(--line-strong);border-radius:6px;
+  margin:18px 0;overflow:hidden
+}
+.well-bar{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);padding:8px 14px;border-bottom:1px solid var(--line-strong);
+  background:var(--card)
+}
+.well pre{
+  margin:0;padding:14px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;
+  line-height:1.7;color:var(--text-2)
+}
+.well pre b{color:var(--cool);font-weight:500}
+.well pre i{color:var(--warm);font-style:normal}
+.well pre em{color:var(--muted);font-style:normal}
+
+/* ---- numbered steps ---- */
+ol.steps{counter-reset:s;list-style:none;margin:20px 0;padding:0;max-width:none}
+ol.steps>li{
+  counter-increment:s;position:relative;padding:0 0 0 46px;margin:0 0 18px;
+  max-width:calc(var(--measure) + 46px)
+}
+ol.steps>li::before{
+  content:counter(s,decimal-leading-zero);position:absolute;left:0;top:1px;
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--warm);
+  border:1px solid var(--line-strong);border-radius:4px;padding:1px 7px;background:var(--card)
+}
+
+/* ---- case cards ---- */
+.cases{display:grid;gap:14px;margin-top:8px}
+.case{
+  background:var(--card);border:1px solid var(--line-strong);border-radius:6px;
+  padding:18px 20px;display:grid;grid-template-columns:104px 1fr;gap:20px
+}
+.case-rail{border-right:1px solid var(--line-strong);padding-right:16px}
+.case-id{
+  font-family:var(--mono);font-size:20px;font-weight:600;color:var(--text);
+  font-variant-numeric:tabular-nums;line-height:1
+}
+.chip{
+  display:inline-block;margin-top:10px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:3px;
+  border:1px solid currentColor
+}
+.chip.ok{color:var(--cool)}
+.chip.no{color:var(--warm)}
+.chip.bug{color:#f472b6}
+.chip.gpu{color:#a78bfa}
+.case h4{
+  margin:0 0 4px;font-size:17px;font-weight:600;color:var(--text);
+  font-family:var(--mono);letter-spacing:-.01em
+}
+.case .runs{
+  font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:0 0 12px;
+  word-break:break-word;max-width:none
+}
+.case p{margin:0 0 10px;color:var(--text-2)}
+.case p:last-child{margin-bottom:0}
+.asserts{
+  font-family:var(--mono);font-size:12.5px;color:var(--cool);
+  border-left:2px solid var(--cool);padding-left:12px;margin:12px 0 0;max-width:none
+}
+.case.neg .asserts{color:var(--warm);border-left-color:var(--warm)}
+
+/* ---- callout ---- */
+.callout{
+  border:1px solid var(--warm);border-radius:6px;background:var(--card);
+  padding:20px 22px;margin:22px 0
+}
+.callout h3{margin:0 0 8px;color:var(--warm);font-family:var(--mono);font-size:15px}
+.callout p:last-child{margin-bottom:0}
+
+/* ---- table ---- */
+.tablewrap{overflow-x:auto;border:1px solid var(--line-strong);border-radius:6px;margin:20px 0}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14.5px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line-strong);vertical-align:top}
+th{
+  font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--muted);background:var(--card);font-weight:500
+}
+tbody tr:last-child td{border-bottom:none}
+td code{white-space:nowrap}
+
+footer{
+  margin-top:72px;padding-top:22px;border-top:1px solid var(--line-strong);
+  font-family:var(--mono);font-size:12px;color:var(--muted)
+}
+footer p{max-width:none}
+@media (max-width:640px){
+  .case{grid-template-columns:1fr;gap:12px}
+  .case-rail{border-right:none;border-bottom:1px solid var(--line-strong);padding:0 0 12px}
+  .chip{margin-top:0;margin-left:10px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">TorchLean · run_tests.sh · Manual</p>
+  <h1>TorchLean Test Suite Manual</h1>
+  <p class="lede">Twelve checks that prove the TorchLean install still works. This page explains what
+  each check means, how to start it from Git Bash on Windows, and how to read the result. It assumes
+  you have never used Lean, WSL, or a terminal test suite before.</p>
+
+  <div class="stats">
+    <div class="stat"><b>12</b><span>Test cases</span></div>
+    <div class="stat"><b>11 + 1</b><span>CPU + optional GPU</span></div>
+    <div class="stat"><b>48 s</b><span>Warm CPU run</span></div>
+    <div class="stat"><b>0</b><span>Failures, 2026-08-27</span></div>
+  </div>
+
+  <ul class="toc">
+    <li><a href="#what">What this tests</a></li>
+    <li><a href="#need">Before you start</a></li>
+    <li><a href="#run">Run it</a></li>
+    <li><a href="#read">Read the result</a></li>
+    <li><a href="#cases">The 12 cases</a></li>
+    <li><a href="#bug">A real bug</a></li>
+    <li><a href="#trouble">When it fails</a></li>
+    <li><a href="#notes">Notes for editors</a></li>
+  </ul>
+</header>
+
+<section id="what">
+  <h2>Section 01</h2>
+  <p class="h2sub">What this tests, in plain words</p>
+
+  <p>TorchLean is a neural-network library written in Lean 4. Lean is a proof assistant. It can check
+  a mathematical claim the same way a compiler checks a type. TorchLean uses that ability for two
+  jobs: it trains models like any other library, and it <strong>proves things about them</strong>.</p>
+
+  <p>A typical proof looks like this. Take a trained image classifier. Nudge every pixel a little.
+  Does the answer stay the same? A normal test tries a few nudges. TorchLean bounds <em>all</em> of
+  them at once and reports a fact: for this input, no nudge inside this box can change the answer.
+  That fact is called a <strong>certificate</strong>.</p>
+
+  <p>A certificate is worth nothing if the checker says yes to everything. So this suite does two
+  kinds of work. Eight cases check that correct things are accepted. Two cases feed the checker a
+  broken certificate and demand a rejection. One case records a bug that is still open upstream. One
+  case runs the same training on the graphics card.</p>
+
+  <p>Everything runs against your real installed copy at <code>~/TorchLean</code> inside WSL, at
+  commit <code>6a5d659</code>. Nothing is mocked.</p>
+</section>
+
+<section id="need">
+  <h2>Section 02</h2>
+  <p class="h2sub">What must already be on the machine</p>
+
+  <p>Three things. The suite will not install them for you.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Item</th><th>Why</th><th>How to check</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Git Bash</strong></td>
+        <td>The terminal you type in. It ships with Git for Windows.</td>
+        <td>Open the Start menu. Type <code>Git Bash</code>. A black window opens.</td>
+      </tr>
+      <tr>
+        <td><strong>WSL Ubuntu</strong></td>
+        <td>A real Linux running inside Windows. Lean is built there. Native Windows builds are
+        blocked on this machine, because Malwarebytes deletes <code>lld.exe</code>.</td>
+        <td>Type <code>wsl -l -v</code>. You should see <code>Ubuntu</code> and
+        <code>Running</code> or <code>Stopped</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>The TorchLean checkout</strong></td>
+        <td>The source code and its built binaries. It lives at <code>~/TorchLean</code>
+        <em>inside</em> Ubuntu, not on the Windows disk.</td>
+        <td>Type <code>wsl -d Ubuntu -- ls ~/TorchLean</code>. You should see
+        <code>NN</code> and <code>lakefile.lean</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>You do not need to open WSL yourself. The script does that for you.</p>
+</section>
+
+<section id="run">
+  <h2>Section 03</h2>
+  <p class="h2sub">Run the suite</p>
+
+  <ol class="steps">
+    <li>Open <strong>Git Bash</strong> from the Start menu.</li>
+    <li>Go to the folder. Type this line and press Enter:
+      <div class="well"><pre>cd /c/Users/&lt;you&gt;/Downloads/torchlean_latent</pre></div>
+      That is the Git Bash spelling of <code>C:\Users\&lt;you&gt;\Downloads\torchlean_latent</code>.
+      Forward slashes, and <code>/c/</code> in place of <code>C:</code>.
+    </li>
+    <li>Start the suite:
+      <div class="well"><pre>./run_tests.sh</pre></div>
+      The leading <code>./</code> is required. It means "the script in this folder".
+    </li>
+    <li>Wait. A warm run takes about 48 seconds. The first run of a case can take several minutes,
+      because Lean compiles the code it needs. That happens once.</li>
+    <li>Read the twelve lines it prints. Every line starts with <code>PASS</code> or
+      <code>FAIL</code>.</li>
+  </ol>
+
+  <h3>Add the graphics-card case</h3>
+  <p>Type this instead:</p>
+  <div class="well"><pre>./run_tests.sh --cuda</pre></div>
+  <p>This adds case 12. It builds a second, separate copy of the library with GPU support. Expect a
+  long first run. Switching back to the plain <code>./run_tests.sh</code> afterwards is fast — it was
+  measured at 48 seconds.</p>
+
+  <h3>Point it at a different checkout</h3>
+  <div class="well"><pre>TL_REPO=/home/&lt;you&gt;/TorchLean ./run_tests.sh</pre></div>
+  <p>Give a Linux path, such as <code>/home/&lt;you&gt;/...</code>. Do not give a Windows path such as
+  <code>C:\...</code>. The default is <code>~/TorchLean</code>.</p>
+
+  <h3>What the script does behind the scenes</h3>
+  <p>You start it on Windows. It notices that, and restarts itself inside Ubuntu with
+  <code>wsl.exe -d Ubuntu</code>. Every Lean command then runs on the Linux side. You never see the
+  switch. This matters only if you edit the script — see <a href="#notes">Notes for editors</a>.</p>
+</section>
+
+<section id="read">
+  <h2>Section 04</h2>
+  <p class="h2sub">Read the result</p>
+
+  <p>A healthy run looks like this. The real numbers from 2026-08-27 are shown.</p>
+
+  <div class="well">
+    <div class="well-bar">Git Bash — ./run_tests.sh</div>
+<pre><em>TorchLean suite — /home/&lt;you&gt;/TorchLean @ 6a5d659
+First run of a case may compile Lean modules (minutes). Later runs are seconds.</em>
+
+<b>PASS</b>  01-tensor-types        Float/ℚ/Int/Float32/IEEE32Exec printed; Tensor ℝ refused
+<b>PASS</b>  02-autograd-closed     grad1(mean(x^2)) = [0.500000, -1.200000] exact
+<b>PASS</b>  03-train-typedgraph    loss 1.349908 -&gt; 0.002521 (falls)
+<b>PASS</b>  04-train-autompg       loss 0.264566 -&gt; 0.057793, trainlog JSON written
+<b>PASS</b>  05-ibp-lowering        18 IR nodes, box [1.904000, 2.256001]
+<b>PASS</b>  06-cert-accept         serialized bounds enclose the Lean recomputation
+<b>PASS</b>  07-margin-cert         349/360 nominal, 318/360 certified
+<b>PASS</b>  08-abcrown-leaf        1 leaf checked, ok=1 bad=0
+<b>PASS</b>  09-neg-tampered        tampered bounds rejected (mismatch reported)
+<b>PASS</b>  10-neg-malformed       truncated artifact rejected at parse time
+<b>PASS</b>  11-xfail-pinn-cert     known: bundled pinn_cert.json still mismatches
+
+<em>11 passed, 0 failed</em></pre>
+  </div>
+
+  <p>Each line has three parts: the verdict, the case name, and the <strong>evidence</strong>. The
+  evidence is a real number or a real message taken from the command's own output. The suite never
+  judges a case by its exit code. A program can exit quietly and still be wrong, so the printed
+  output is what counts.</p>
+
+  <p>A failing line looks like this. The suite prints the last twelve lines of real output under it,
+  each marked with a <code>|</code>, so you can see what actually happened:</p>
+
+  <div class="well">
+    <div class="well-bar">Failing case — example</div>
+<pre><i>FAIL</i>  08-abcrown-leaf        leaf artifact check did not report ok=1 bad=0
+        | [artifact] Checked 1 leaves: ok=1, bad=0</pre>
+  </div>
+
+  <p>The last line of a run is the count. The script also sets an exit code: <code>0</code> when
+  every case passed, <code>1</code> when any case failed. That makes it usable from a build server
+  later, with no changes.</p>
+</section>
+
+<section id="cases">
+  <h2>Section 05</h2>
+  <p class="h2sub">The twelve cases, one at a time</p>
+
+  <p>The numbers are the case IDs the script prints. They are grouped by the question each group
+  answers.</p>
+
+  <h3>Group A — Is the maths still right?</h3>
+  <div class="cases">
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">01</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>tensor-types</h4>
+        <p class="runs">lake exe torchlean quickstart_tensors</p>
+        <p>A tensor is a grid of numbers. TorchLean tracks <em>which kind</em> of number is inside,
+        in the type itself: ordinary <code>Float</code>, exact fractions <code>ℚ</code>, whole
+        numbers <code>Int</code>, and two flavours of 32-bit float.</p>
+        <p>One kind is special. <code>Tensor ℝ</code> holds real numbers — the mathematician's kind,
+        with infinite precision. No computer can print those. TorchLean must therefore
+        <strong>refuse</strong> to print it, and tell you to convert first. That refusal is the whole
+        point of the case: the library keeps proof-level maths and runnable code apart, and does not
+        quietly blur them.</p>
+        <p class="asserts">Asserts → the IEEE32Exec row prints, and the words "Refusing to print"
+        appear.</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">02</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>autograd-closed</h4>
+        <p class="runs">lake exe torchlean quickstart_autograd</p>
+        <p>Training a network means following gradients — the slope of the error. The library
+        computes those slopes automatically. This case checks the machine against a slope worked out
+        by hand.</p>
+        <p>The function is the mean of x squared, over n numbers. Its derivative is 2x divided by n.
+        The example uses n = 2, so the two halves cancel and the derivative is simply x. The input is
+        x = [0.5, −1.2], so the gradient must come back as [0.5, −1.2] — the input, reproduced
+        exactly. Any other value means the gradient engine is broken, and every trained model built
+        on it is suspect.</p>
+        <p class="asserts">Asserts → the exact line
+        <code>grad1(mean(x^2)) = [0.500000, -1.200000]</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Group B — Does training actually learn?</h3>
+  <div class="cases">
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">03</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>train-typedgraph</h4>
+        <p class="runs">lake exe torchlean quickstart_mlp --steps 200 --scalar ieee32-exec
+        --execution typed-graph</p>
+        <p>A small network trains for 200 steps on toy data. The loss is the error. It must go down.</p>
+        <p>Two settings make this case interesting. <code>ieee32-exec</code> means the arithmetic
+        follows the IEEE-754 32-bit standard bit for bit, not a loose approximation.
+        <code>typed-graph</code> means the model runs as a checked computation graph rather than
+        step-by-step. Both paths must still learn.</p>
+        <p class="asserts">Asserts → the final loss is below the first loss. Observed
+        1.349908 → 0.002521.</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">04</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>train-autompg</h4>
+        <p class="runs">lake exe torchlean mlp --steps 50</p>
+        <p>The same idea on real data: the Auto MPG dataset, 78 cars, predicting fuel economy. This
+        case reads a file from disk, so it also proves the data path works.</p>
+        <p>It checks a second thing. The run must leave behind
+        <code>data/model_zoo/mlp_trainlog.json</code>, the training log. The suite deletes that file
+        first, then demands it reappear and be non-empty. A run that trains but writes nothing is
+        only half a success.</p>
+        <p class="asserts">Asserts → loss falls (0.264566 → 0.057793) <em>and</em> the log file
+        exists and is not empty.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Group C — Does verification work?</h3>
+  <div class="cases">
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">05</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>ibp-lowering</h4>
+        <p class="runs">lake exe verify -- torchlean-ibp</p>
+        <p>This is the first half of verification: turn a model into something provable. The network
+        is <em>lowered</em> into an intermediate graph — 18 nodes — and then bounded.</p>
+        <p>IBP means Interval Bound Propagation. Instead of one input, you feed in a
+        <strong>range</strong>. Each layer widens or narrows that range. At the end you get a box:
+        the output cannot leave it. Here the box is [1.904000, 2.256001].</p>
+        <p>The case pins the node count at 18, because a change there means the model was translated
+        differently, and checks that the low end is below the high end. A box with the ends swapped is
+        meaningless.</p>
+        <p class="asserts">Asserts → exactly 18 IR nodes, and lo &lt; hi.</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">06</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>cert-accept</h4>
+        <p class="runs">lake exe verify -- lirpa-mlp</p>
+        <p>Here Lean checks somebody else's homework. An outside tool (LiRPA, a Python bound
+        calculator) produced a certificate file with the bounds it claims. Lean does not trust it. It
+        recomputes the bounds itself, then asks one question: do the claimed bounds
+        <strong>enclose</strong> mine?</p>
+        <p>Enclosing is what matters, not matching. The outside tool is allowed to be more cautious
+        than Lean. It is not allowed to claim a tighter bound than the maths supports.</p>
+        <p class="asserts">Asserts → the message "IBP certificate verified" appears.</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">07</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>margin-cert</h4>
+        <p class="runs">lake exe verify -- margin-cert</p>
+        <p>The headline result, on 360 handwritten-digit images. Two counts come back.</p>
+        <p><strong>Nominal, 349 of 360.</strong> The model gets the answer right on the plain image.
+        That is ordinary accuracy. <strong>Certified, 318 of 360.</strong> Lean proved the answer
+        cannot change anywhere inside the allowed nudge box. That is a much stronger claim, so the
+        number is lower.</p>
+        <p>The gap between 349 and 318 is honest. Those 31 images are classified correctly but not
+        provably so. The case fixes all three numbers, because a silent drift in any of them means
+        the certification pipeline changed.</p>
+        <p class="asserts">Asserts → exactly <code>360 / 349 / 318</code>.</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">08</div><span class="chip ok">Accept</span>
+      </div>
+      <div>
+        <h4>abcrown-leaf</h4>
+        <p class="runs">lake exe verify -- abcrown-leaf</p>
+        <p>α,β-CROWN is a well-known external verifier. It splits a hard problem into branches and
+        solves the leaves. TorchLean does not re-run that search. It checks the leaf record it was
+        handed: are the boxes properly nested, are the arrays the right size, does the claimed lower
+        bound hold?</p>
+        <p>This is a trust boundary made visible. The expensive search stays outside. The claim that
+        comes back gets checked inside.</p>
+        <p class="asserts">Asserts → <code>ok=1, bad=0</code> for the bundled leaf.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Group D — Does it ever say no?</h3>
+  <p>These two are the most important cases in the suite. A checker that accepts everything looks
+  perfect and proves nothing. Both cases build a broken file at run time, in
+  <code>/tmp</code> inside WSL, and leave your real files untouched.</p>
+
+  <div class="cases">
+
+    <div class="case neg">
+      <div class="case-rail">
+        <div class="case-id">09</div><span class="chip no">Must reject</span>
+      </div>
+      <div>
+        <h4>neg-tampered</h4>
+        <p class="runs">lake exe verify -- lirpa-mlp /tmp/tl_tampered_cert.json</p>
+        <p>The suite copies the good certificate from case 06 and adds 1000 to its lower bounds. The
+        file is still perfectly valid JSON. Only the mathematics is now a lie.</p>
+        <p>Lean must catch it. It recomputes, sees that the claimed lower bound of 1230 does not
+        match its own 230, prints both, and refuses the certificate. If this case ever passes
+        silently, the checker has stopped checking.</p>
+        <p class="asserts">Rejects → "IBP certificate mismatch", with Lean's numbers and the file's
+        numbers side by side.</p>
+      </div>
+    </div>
+
+    <div class="case neg">
+      <div class="case-rail">
+        <div class="case-id">10</div><span class="chip no">Must reject</span>
+      </div>
+      <div>
+        <h4>neg-malformed</h4>
+        <p class="runs">lake exe verify -- lirpa-mlp /tmp/tl_malformed_cert.json</p>
+        <p>A different attack: the same certificate cut off after 120 bytes, as a half-finished
+        download would be. The danger is a parser that reads what it can, fills in the rest with
+        defaults, and cheerfully verifies a file that stops mid-sentence.</p>
+        <p>The failure must land at parse time, before any bound is trusted.</p>
+        <p class="asserts">Rejects → "invalid JSON: offset 120: unexpected end of input".</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Group E — A bug, and the graphics card</h3>
+  <div class="cases">
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">11</div><span class="chip bug">Known bug</span>
+      </div>
+      <div>
+        <h4>xfail-pinn-cert</h4>
+        <p class="runs">lake exe verify -- pinn-cert</p>
+        <p>This case is inside out. It passes <em>because</em> the command fails. See
+        <a href="#bug">A real bug</a> below for what is wrong and what to do about it.</p>
+        <p class="asserts">Asserts → the known error text is still present. Turns FAIL when upstream
+        fixes it.</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="case-rail">
+        <div class="case-id">12</div><span class="chip gpu">GPU · opt-in</span>
+      </div>
+      <div>
+        <h4>cuda-train</h4>
+        <p class="runs">lake -R -K cuda=true exe torchlean mlp --device cuda --steps 200</p>
+        <p>The same Auto MPG training as case 04, moved onto the NVIDIA graphics card. It runs only
+        when you pass <code>--cuda</code>.</p>
+        <p>It checks two things: the program really says <code>device: cuda</code>, so the work did
+        not quietly fall back to the processor, and the loss still falls. Observed
+        0.264566 → 0.010684.</p>
+        <p>This case has a hardware requirement. The driver on this machine, version 592.82, supports
+        CUDA up to 13.1. Toolkit 13.3 compiles but crashes at launch with PTX error 222. Keep the
+        toolkit pinned at 13.1.</p>
+        <p class="asserts">Asserts → the line <code>device: cuda</code> appears, and the loss falls.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="bug">
+  <h2>Section 06</h2>
+  <p class="h2sub">A real bug, found while writing this suite</p>
+
+  <div class="callout">
+    <h3>lake exe verify -- pinn-cert fails on its own bundled example</h3>
+    <p>A PINN is a physics-informed neural network — a model trained to obey a differential
+    equation, not just to fit data. TorchLean ships an example certificate for one, and its README
+    lists the command above as a working example.</p>
+    <p>It does not work. It throws:</p>
+    <div class="well"><pre><i>uncaught exception: u(x-h) mismatch at x=0.250000:
+Lean (-2.800000, 2.800000) differs from certificate (0.872401, 0.931752)</i></pre></div>
+    <p>Read that as: at the grid point x = 0.25, the shipped file claims the network's value lies
+    between 0.872401 and 0.931752. Lean recomputes and gets a far wider range, −2.8 to 2.8. The two
+    disagree, so Lean refuses. Either the file
+    (<code>NN/Examples/Verification/PINN/pinn_cert.json</code>) is stale, or the checker changed
+    under it.</p>
+    <p><strong>Case 11 records this on purpose.</strong> It passes while the bug is present. The day
+    upstream fixes it, case 11 turns <code>FAIL</code> — and that is your signal to read the change
+    and delete the case. A known bug that is tracked is a fact. A known bug that is ignored becomes a
+    surprise.</p>
+  </div>
+</section>
+
+<section id="trouble">
+  <h2>Section 07</h2>
+  <p class="h2sub">When something fails</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>What you see</th><th>What it means</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>bash: ./run_tests.sh: Permission denied</code></td>
+        <td>The file is not marked runnable.</td>
+        <td>Type <code>chmod +x run_tests.sh</code>, then run it again.</td>
+      </tr>
+      <tr>
+        <td><code>no checkout at /home/...</code></td>
+        <td>The script cannot find TorchLean at that path inside Ubuntu.</td>
+        <td>Check the path with <code>wsl -d Ubuntu -- ls ~/TorchLean</code>. Set
+        <code>TL_REPO</code> if it lives elsewhere.</td>
+      </tr>
+      <tr>
+        <td><code>Path has a space</code></td>
+        <td>The folder name contains a space. Passing it through to Linux would break.</td>
+        <td>Move the folder to a path with no spaces.</td>
+      </tr>
+      <tr>
+        <td>The run seems frozen for minutes</td>
+        <td>Normal on a first run. Lean is compiling. Each case has a one-hour ceiling.</td>
+        <td>Wait. The next run of the same case takes seconds.</td>
+      </tr>
+      <tr>
+        <td>Case 12 fails, all others pass</td>
+        <td>A GPU or CUDA-toolkit problem, not a TorchLean problem.</td>
+        <td>Confirm the toolkit is pinned to 13.1. After a toolkit change, delete stale
+        <code>.lake/build/*cuda*</code> objects and build again.</td>
+      </tr>
+      <tr>
+        <td>Case 11 fails</td>
+        <td>Good news, probably. The upstream PINN bug may be fixed.</td>
+        <td>Run <code>lake exe verify -- pinn-cert</code> yourself and read the new output.</td>
+      </tr>
+      <tr>
+        <td>Case 09 or 10 fails</td>
+        <td>Serious. A broken certificate was accepted.</td>
+        <td>Stop trusting the certificate results until you know why. Read the printed output under
+        the FAIL line.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="notes">
+  <h2>Section 08</h2>
+  <p class="h2sub">Notes for anyone editing the script</p>
+
+  <p><strong>A dollar sign does not survive the trip to Linux.</strong> When Git Bash launches
+  <code>wsl.exe -d Ubuntu -- bash -lc '...'</code>, any <code>$variable</code> inside that text
+  arrives <em>empty</em>. Not an error — empty. The script therefore expands every path on the
+  Windows side and sends plain text across. Keep it that way.</p>
+
+  <p><strong>Git Bash rewrites Linux paths.</strong> A value like <code>/home/&lt;you&gt;/TorchLean</code>
+  handed to a Windows program becomes <code>C:/Program Files/Git/home/&lt;you&gt;/TorchLean</code>. The
+  script sets <code>MSYS_NO_PATHCONV=1</code> to stop that. Remove the line and
+  <code>TL_REPO</code> breaks.</p>
+
+  <p><strong>Judge by output, never by exit code.</strong> Every check greps the command's printed
+  text. This is deliberate, and it is why each PASS line can quote a real number back to you.</p>
+
+  <p><strong>Adding a case.</strong> Copy the shape of an existing one: run the command into
+  <code>out</code>, test it, call <code>say &lt;name&gt; &lt;0 or 1&gt; "&lt;evidence&gt;"</code>.
+  Assert on things that are stable — a count, a message, a falling loss. Do not pin a floating-point
+  number unless the exact value is the point, as in cases 02 and 07.</p>
+
+  <p><strong>What is deliberately left out.</strong> The full Lean regression suite
+  (<code>lake exe nn_tests_suite</code>), <code>digits-train-certify</code>, and
+  <code>vnncomp-mnistfc</code>. All three are slow or need extra data. Add them when you want a
+  nightly run rather than a 48-second one.</p>
+</section>
+
+<footer>
+  <p>run_tests.sh · verified 2026-08-27 against ~/TorchLean @ 6a5d659 in WSL Ubuntu · 12 passed,
+  0 failed</p>
+</footer>
+
+</div>
+</body>
+</html>
